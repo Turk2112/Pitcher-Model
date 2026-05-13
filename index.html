@@ -1,743 +1,242 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pitcher Matchup Model</title>
-<style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f2; color: #1a1a1a; font-size: 14px; }
-.container { max-width: 1300px; margin: 0 auto; padding: 2rem 1.5rem; }
-h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
-.subtitle { font-size: 13px; color: #666; margin-bottom: 1.5rem; }
-.card { background: #fff; border-radius: 12px; border: 1px solid #e8e8e4; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
-.section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #888; margin-bottom: 10px; }
-.btn { display: inline-block; padding: 8px 16px; border-radius: 8px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-size: 13px; color: #333; transition: background 0.1s; }
-.btn:hover { background: #f5f5f2; }
-.btn-primary { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
-.btn-primary:hover { background: #333; }
-.btn-sm { padding: 5px 12px; font-size: 12px; }
-.upload-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-.upload-box { border: 2px dashed #ccc; border-radius: 10px; padding: 1.25rem; text-align: center; cursor: pointer; transition: all 0.15s; }
-.upload-box:hover { border-color: #999; background: #fafaf8; }
-.upload-box.loaded { border-color: #3b6d11; border-style: solid; background: #f4fbed; }
-.upload-box input { display: none; }
-.upload-icon { font-size: 1.5rem; margin-bottom: 6px; }
-.upload-title { font-weight: 600; font-size: 12px; margin-bottom: 3px; }
-.upload-sub { font-size: 11px; color: #888; line-height: 1.4; }
-.loaded-label { font-size: 11px; color: #3b6d11; font-weight: 600; margin-top: 4px; }
-.summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 1.25rem; }
-.scard { background: #f5f5f2; border-radius: 8px; padding: 10px 14px; }
-.scard-label { font-size: 11px; color: #888; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.04em; }
-.scard-val { font-size: 22px; font-weight: 600; }
-.fade-col { color: #a32d2d; }
-.buy-col { color: #3b6d11; }
-.signal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
-.signal-panel { background: #fff; border-radius: 12px; border: 1px solid #e8e8e4; padding: 1rem 1.25rem; }
-.signal-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 0.5px solid #f0f0ec; padding: 5px 0; font-size: 13px; }
-.signal-row:last-child { border-bottom: none; }
-.signal-name { font-weight: 600; }
-.signal-score { font-weight: 700; font-size: 13px; }
-.matchup-section { margin-bottom: 1.25rem; }
-.date-row { display: flex; gap: 10px; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; }
-.date-row input[type=date] { padding: 7px 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; }
-.slate-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; }
-.game-card { background: #fff; border-radius: 12px; border: 1px solid #e8e8e4; padding: 1rem 1.25rem; }
-.game-header { font-size: 12px; color: #888; margin-bottom: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
-.pitcher-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0; border-bottom: 0.5px solid #f0f0ec; }
-.pitcher-row:last-child { border-bottom: none; }
-.pitcher-info { flex: 1; }
-.pitcher-name { font-weight: 600; font-size: 14px; }
-.pitcher-team { font-size: 11px; color: #888; margin-top: 1px; }
-.pitcher-opp { font-size: 11px; color: #555; margin-top: 2px; }
-.score-block { text-align: right; }
-.matchup-score { font-size: 20px; font-weight: 700; }
-.score-breakdown { font-size: 11px; color: #888; margin-top: 2px; }
-.badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; margin-top: 3px; }
-.fade-badge { background: #fcebeb; color: #a32d2d; }
-.buy-badge { background: #eaf3de; color: #3b6d11; }
-.neutral-badge { background: #f5f5f2; color: #888; }
-.strong-badge { background: #fff3cd; color: #856404; }
-.no-data { color: #bbb; font-style: italic; font-size: 12px; }
-.tab-row { display: flex; border-bottom: 1px solid #e8e8e4; margin-bottom: 1rem; }
-.tab { padding: 7px 18px; font-size: 13px; cursor: pointer; border: none; background: none; border-bottom: 2px solid transparent; color: #888; margin-bottom: -1px; }
-.tab.active { color: #1a1a1a; border-bottom-color: #1a1a1a; font-weight: 600; }
-.filters { display: flex; gap: 10px; margin-bottom: 1rem; flex-wrap: wrap; }
-.filters input, .filters select { padding: 6px 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; background: #fff; }
-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 900px; }
-th { text-align: left; padding: 7px 8px; font-weight: 600; font-size: 11px; color: #888; border-bottom: 1px solid #e8e8e4; cursor: pointer; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.04em; }
-th:hover { color: #1a1a1a; }
-td { padding: 9px 8px; border-bottom: 1px solid #f0f0ec; }
-tr:last-child td { border-bottom: none; }
-tr:hover td { background: #fafaf8; }
-.table-wrap { overflow-x: auto; }
-.score-bar-wrap { display: flex; align-items: center; gap: 8px; }
-.score-bar { height: 5px; border-radius: 3px; min-width: 3px; }
-.thresholds { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1rem; }
-.thresh-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #555; background: #f5f5f2; padding: 4px 10px; border-radius: 20px; }
-.thresh-item input { width: 48px; font-size: 12px; padding: 2px 5px; border: 1px solid #ddd; border-radius: 4px; background: #fff; }
-.status-bar { font-size: 12px; padding: 8px 12px; border-radius: 8px; margin-bottom: 1rem; }
-.status-ok { background: #eaf3de; color: #3b6d11; }
-.status-warn { background: #faeeda; color: #854f0b; }
-.status-err { background: #fcebeb; color: #a32d2d; }
-.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #ddd; border-top-color: #1a1a1a; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.opp-tag { font-size: 10px; background: #f0f0ec; padding: 1px 6px; border-radius: 10px; color: #555; margin-left: 6px; }
-.adj-pos { color: #3b6d11; font-size: 11px; }
-.adj-neg { color: #a32d2d; font-size: 11px; }
-#mainSection { display: none; }
-.flag { font-size: 10px; color: #a32d2d; }
-.flag-ok { font-size: 10px; color: #3b6d11; }
-</style>
-</head>
-<body>
-<div class="container">
-  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
-    <div>
-      <h1>⚾ Pitcher Matchup Model</h1>
-      <div class="subtitle">Pitcher regression scores · Opponent strength · Daily slate analysis</div>
-    </div>
-    <div style="display:flex;gap:8px;">
-      <button class="btn btn-sm btn-primary" onclick="loadSample()">Load sample data</button>
-      <button class="btn btn-sm" id="resetBtn" style="display:none;" onclick="resetApp()">↺ Reset</button>
-    </div>
-  </div>
-
-  <div id="uploadSection">
-    <div class="card">
-      <div class="section-title" style="margin-bottom:12px;">Step 1 — Upload your Baseball Savant CSVs</div>
-      <div class="upload-grid" style="grid-template-columns:1fr 1fr;">
-        <div class="upload-box" id="box1" onclick="document.getElementById('csv1').click()" ondragover="event.preventDefault()" ondrop="handleDrop(event,1)">
-          <input type="file" id="csv1" accept=".csv" onchange="handleFile(event,1)">
-          <div class="upload-icon">📊</div>
-          <div class="upload-title">Expected Stats CSV</div>
-          <div class="upload-sub">ERA · xERA<br>baseballsavant.mlb.com/leaderboard/expected_statistics</div>
-          <div id="loaded1" class="loaded-label" style="display:none;">✓ Loaded</div>
-        </div>
-        <div class="upload-box" id="box2" onclick="document.getElementById('csv2').click()" ondragover="event.preventDefault()" ondrop="handleDrop(event,2)">
-          <input type="file" id="csv2" accept=".csv" onchange="handleFile(event,2)">
-          <div class="upload-icon">📈</div>
-          <div class="upload-title">Pitcher Stats CSV</div>
-          <div class="upload-sub">K% · BB% · BABIP · Hard Hit% · Barrel%<br>baseballsavant.mlb.com/leaderboard/custom (Pitching)</div>
-          <div id="loaded2" class="loaded-label" style="display:none;">✓ Loaded</div>
-        </div>
-      </div>
-      <div style="font-size:12px;color:#888;text-align:center;margin-bottom:10px;">Team batting stats are pulled automatically from the MLB API when you fetch the daily slate — no third CSV needed.</div>
-      <div style="text-align:center;">
-        <button class="btn btn-primary" id="runBtn" style="display:none;padding:9px 24px;" onclick="runModel()">Run model →</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="mainSection">
-    <div id="statusBar" class="status-bar" style="display:none;"></div>
-
-    <div class="summary-grid" id="summaryCards"></div>
-
-    <div class="signal-grid">
-      <div class="signal-panel">
-        <div class="section-title" style="color:#a32d2d;">🔴 Top fades</div>
-        <div id="fadeList"></div>
-      </div>
-      <div class="signal-panel">
-        <div class="section-title" style="color:#3b6d11;">🟢 Top buy-lows</div>
-        <div id="buyList"></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="section-title" style="margin-bottom:10px;">Today's slate — matchup analysis</div>
-      <div class="date-row">
-        <input type="date" id="slateDate">
-        <button class="btn btn-primary btn-sm" onclick="fetchSlate()">Pull probable starters</button>
-        <span id="slateStatus" style="font-size:12px;color:#888;"></span>
-      </div>
-      <div id="slateContent"></div>
-    </div>
-
-    <div class="card" style="padding:1rem 1.25rem;">
-      <div class="section-title" style="margin-bottom:8px;">Thresholds</div>
-      <div class="thresholds">
-        <div class="thresh-item"><span>ERA/xERA gap ≥</span><input type="number" id="tGap" value="1.75" step="0.25" min="0" onchange="applyFilters()"></div>
-        <div class="thresh-item"><span>Hard hit% ≥</span><input type="number" id="tHH" value="36" step="1" min="0" onchange="applyFilters()"></div>
-        <div class="thresh-item"><span>K-BB% ≤ (fade)</span><input type="number" id="tKBBFade" value="10" step="1" onchange="applyFilters()"></div>
-        <div class="thresh-item"><span>K-BB% ≥ (buy)</span><input type="number" id="tKBBBuy" value="20" step="1" onchange="applyFilters()"></div>
-      </div>
-    </div>
-
-    <div class="card" style="padding:1rem 1.25rem 0;">
-      <div class="section-title" style="margin-bottom:8px;">All pitchers</div>
-      <div class="tab-row">
-        <button class="tab active" onclick="switchTab('all',this)">All</button>
-        <button class="tab" onclick="switchTab('fade',this)">🔴 Fades</button>
-        <button class="tab" onclick="switchTab('buy',this)">🟢 Buy-low</button>
-      </div>
-      <div class="filters">
-        <input type="text" id="searchInput" placeholder="Search pitcher..." oninput="renderTable()" style="width:180px;">
-        <select id="teamFilter" onchange="renderTable()"><option value="">All teams</option></select>
-      </div>
-      <div class="table-wrap" id="tableWrap"></div>
-    </div>
-  </div>
-</div>
-
-<script>
-let pitcherData={}, teamBatData={}, allPitchers=[], sortCol='score', sortDir=-1, currentTab='all';
-let csv1={}, csv2={}, csv3={};
-
-const g=id=>document.getElementById(id);
-const tv=(id,def)=>parseFloat(g(id)?.value??def);
-const kbb=p=>(p.kpct||0)-(p.bbpct||0);
-
-const SAMPLE_PITCHERS=[
-  {name:'Jose Soriano',team:'LAA',era:1.74,xera:3.88,hh:35.4,babip:.205,kpct:32.5,bbpct:7.1,barrel:10.7},
-  {name:'Brett Martin',team:'TEX',era:1.95,xera:4.55,hh:48.0,babip:.220,kpct:14.0,bbpct:8.5,barrel:12.1},
-  {name:'Patrick Corbin',team:'WSH',era:2.50,xera:5.71,hh:42.0,babip:.250,kpct:13.0,bbpct:9.5,barrel:11.2},
-  {name:'Jesus Luzardo',team:'PHI',era:7.94,xera:3.20,hh:31.0,babip:.417,kpct:30.0,bbpct:4.5,barrel:7.8},
-  {name:'Tarik Skubal',team:'DET',era:1.90,xera:2.10,hh:24.0,babip:.280,kpct:32.0,bbpct:4.0,barrel:5.1},
-  {name:'Garrett Crochet',team:'BOS',era:2.20,xera:2.40,hh:26.0,babip:.285,kpct:34.0,bbpct:8.0,barrel:5.5},
-  {name:'Kodai Senga',team:'NYM',era:2.84,xera:5.35,hh:40.0,babip:.240,kpct:20.0,bbpct:11.0,barrel:10.0},
-  {name:'Logan Gilbert',team:'SEA',era:4.03,xera:3.10,hh:33.0,babip:.351,kpct:24.0,bbpct:6.0,barrel:8.0},
-  {name:'Chris Paddack',team:'MIN',era:7.63,xera:4.34,hh:47.2,babip:.347,kpct:11.7,bbpct:8.3,barrel:10.3},
-  {name:'Shota Imanaga',team:'CHC',era:2.40,xera:2.60,hh:27.0,babip:.275,kpct:27.0,bbpct:5.0,barrel:6.0},
-];
-
-const SAMPLE_TEAMS=[
-  {team:'NYY',hh:40.2,barrel:9.8,bbpct:9.1,kpct:20.3,woba:.345},
-  {team:'LAD',hh:39.8,barrel:10.1,bbpct:9.5,kpct:22.1,woba:.342},
-  {team:'CHC',hh:37.1,barrel:8.2,bbpct:8.4,kpct:23.5,woba:.330},
-  {team:'ATL',hh:38.5,barrel:9.2,bbpct:8.8,kpct:21.8,woba:.338},
-  {team:'BOS',hh:36.2,barrel:8.0,bbpct:8.2,kpct:22.0,woba:.325},
-  {team:'HOU',hh:35.8,barrel:7.9,bbpct:9.0,kpct:21.5,woba:.320},
-  {team:'PHI',hh:38.0,barrel:9.0,bbpct:8.6,kpct:22.3,woba:.335},
-  {team:'MIN',hh:34.2,barrel:7.1,bbpct:7.8,kpct:23.8,woba:.310},
-  {team:'TEX',hh:33.5,barrel:6.8,bbpct:7.5,kpct:24.1,woba:.305},
-  {team:'OAK',hh:30.1,barrel:5.2,bbpct:7.0,kpct:26.5,woba:.285},
-  {team:'WSH',hh:31.5,barrel:5.8,bbpct:7.2,kpct:25.0,woba:.292},
-  {team:'MIA',hh:29.8,barrel:5.0,bbpct:6.8,kpct:27.2,woba:.280},
-  {team:'DET',hh:32.0,barrel:6.5,bbpct:7.4,kpct:24.5,woba:.300},
-  {team:'SEA',hh:33.0,barrel:6.9,bbpct:7.6,kpct:23.9,woba:.308},
-  {team:'NYM',hh:35.5,barrel:7.5,bbpct:8.1,kpct:22.8,woba:.318},
-];
-
-function parseCSVLine(line,delim){
-  if(!delim) delim=line.includes('\t')?'\t':',';
-  const r=[];let c='',q=false;
-  for(let i=0;i<line.length;i++){
-    const ch=line[i];
-    if(ch==='"'){q=!q;}
-    else if(ch===delim&&!q){r.push(c.trim());c='';}
-    else{c+=ch;}
-  }
-  r.push(c.trim());return r;
-}
-
-function normalName(s){
-  return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
-}
-
-function parseCSVToMap(text,keyField='player_id'){
-  const lines=text.replace(/^\uFEFF/,'').split('\n').filter(l=>l.trim());
-  if(lines.length<2) return {};
-  const delim=lines[0].includes('\t')?'\t':',';
-  const hCols=parseCSVLine(lines[0],delim);
-  const headers=hCols.map(h=>h.toLowerCase().replace(/[^a-z0-9_]/g,'_'));
-  const iName=headers.findIndex(h=>h.includes('last_name')||h.includes('team_name')||h==='team');
-  const iId=headers.findIndex(h=>h===keyField||h==='player_id'||h==='team_id');
-  const result={};
-  for(let i=1;i<lines.length;i++){
-    const cols=parseCSVLine(lines[i],delim);
-    if(cols.length<2) continue;
-    let nameRaw=iName>=0?cols[iName]:'';
-    const parts=nameRaw.split(',');
-    const name=parts.length>=2?parts[1].trim()+' '+parts[0].trim():nameRaw.trim();
-    const pid=iId>=0?cols[iId].trim().replace(/"/g,''):'';
-    const row={name};
-    headers.forEach((h,idx)=>{if(cols[idx]!==undefined)row[h]=cols[idx];});
-    const key=pid||normalName(name);
-    result[key]=row;
-  }
-  return result;
-}
-
-function extractVal(row,...keys){
-  if(!row) return 0;
-  for(const k of keys){
-    const found=Object.keys(row).find(h=>h===k||h.includes(k));
-    if(found){const v=parseFloat(row[found]);if(!isNaN(v))return v;}
-  }
-  return 0;
-}
-
-function extractRate(row,...keys){
-  // For rate stats like wOBA that can be small decimals but not zero
-  if(!row) return 0;
-  for(const k of keys){
-    const found=Object.keys(row).find(h=>h===k||h.includes(k));
-    if(found){const v=parseFloat(row[found]);if(!isNaN(v)&&v>0)return v;}
-  }
-  return 0;
-}
-
-function scorePitcher(p){
-  const tGap=tv('tGap',1.75),tHH=tv('tHH',36),tKF=tv('tKBBFade',10),tKB=tv('tKBBBuy',20);
-  let f=0,b=0;
-  const gap=(p.era||0)-(p.xera||0),kb=kbb(p);
-  if(p.xera>0){
-    if(gap>=tGap) f+=Math.min((gap-tGap)*20,40);
-    if(gap<=-tGap) b+=Math.min((Math.abs(gap)-tGap)*20,40);
-  }
-  if(p.hh>0){
-    if(p.hh>=tHH) f+=Math.min((p.hh-tHH)*1.5,25);
-    if(p.hh<30) b+=Math.min((30-p.hh)*1.5,25);
-  }
-  if(p.babip>0){
-    if(p.babip<0.260) f+=Math.min((0.260-p.babip)*120,15);
-    if(p.babip>=0.360) b+=Math.min((p.babip-0.360)*120,15);
-  }
-  if(p.kpct>0){
-    if(kb<=tKF) f+=Math.min((tKF-kb)*2,20);
-    if(kb>=tKB) b+=Math.min((kb-tKB)*2,20);
-  }
-  // wOBA vs xwOBA gap — lucky pitcher (woba < xwoba) = fade, unlucky (woba > xwoba) = buy
-  if(p.woba>0&&p.xwoba>0){
-    const wobGap=p.woba-p.xwoba;
-    if(wobGap<=-0.020) f+=Math.min(Math.abs(wobGap)*200,20);
-    if(wobGap>=0.020) b+=Math.min(wobGap*200,20);
-  }
-  return{fadeScore:Math.round(f),buyScore:Math.round(b)};
-}
-
-function oppAdjustment(pitcher,opp){
-  if(!opp||(!opp.ops&&!opp.bbpct)) return{adj:0,detail:'No opponent data'};
-  let adj=0;
-  const tKF=tv('tKBBFade',10),tKB=tv('tKBBBuy',20);
-  const{fadeScore,buyScore}=scorePitcher(pitcher);
-  const isFade=fadeScore>buyScore&&fadeScore>0;
-  const isBuy=buyScore>fadeScore&&buyScore>0;
-  const details=[];
-
-  if(isFade){
-    // Strong offense (high OPS) amplifies fade signal
-    if(opp.ops>0){
-      const opsBonus=Math.round((opp.ops-0.720)*50);
-      adj+=Math.min(Math.max(opsBonus,-10),15);
-      if(opsBonus>3) details.push(`OPS ${opp.ops.toFixed(3)} ↑`);
-      else if(opsBonus<-3) details.push(`OPS ${opp.ops.toFixed(3)} ↓`);
-    }
-    // Patient lineup (high BB%) hurts pitcher with bad K-BB%
-    const kb=kbb(pitcher);
-    if(kb<=tKF&&opp.bbpct>0){
-      const bbBonus=Math.round((opp.bbpct-8)*1.5);
-      adj+=Math.min(Math.max(bbBonus,-5),10);
-      if(bbBonus>2) details.push(`Opp BB% ${opp.bbpct.toFixed(1)}% ↑`);
-    }
-    // Power lineup (high HR rate) hurts high-barrel pitcher
-    if(pitcher.barrel>9&&opp.hrRate>0){
-      const hrBonus=Math.round((opp.hrRate-2.5)*3);
-      adj+=Math.min(Math.max(hrBonus,-5),10);
-      if(hrBonus>2) details.push(`Opp power ↑`);
-    }
-    // High strikeout team softens fade (they miss bats)
-    if(opp.kpct>0){
-      const kPenalty=Math.round((opp.kpct-22)*0.6);
-      adj-=Math.min(Math.max(kPenalty,0),8);
-      if(kPenalty>2) details.push(`Opp K% ${opp.kpct.toFixed(1)}% ↓`);
-    }
-  }
-
-  if(isBuy){
-    // Weak offense (low OPS) strengthens buy-low
-    if(opp.ops>0){
-      const opsBonus=Math.round((0.720-opp.ops)*50);
-      adj+=Math.min(Math.max(opsBonus,-10),15);
-      if(opsBonus>3) details.push(`Opp OPS ${opp.ops.toFixed(3)} ↑`);
-    }
-    // High K% team helps pitcher with good stuff
-    const kb=kbb(pitcher);
-    if(kb>=tKB&&opp.kpct>0){
-      const kBonus=Math.round((opp.kpct-22)*0.8);
-      adj+=Math.min(Math.max(kBonus,0),10);
-      if(kBonus>2) details.push(`Opp K% ${opp.kpct.toFixed(1)}% ↑`);
-    }
-  }
-
-  const label=details.length?details.join(' · '):'Neutral matchup';
-  return{adj:Math.round(adj),detail:label};
-}
-
-function classifyPitcher(p){
-  const{fadeScore,buyScore}=scorePitcher(p);
-  const tGap=tv('tGap',1.75),tHH=tv('tHH',36),tKF=tv('tKBBFade',10),tKB=tv('tKBBBuy',20);
-  const gap=(p.era||0)-(p.xera||0),kb=kbb(p);
-  const wobGap=p.woba>0&&p.xwoba>0?p.woba-p.xwoba:0;
-  const ff=(p.xera>0&&gap>=tGap?1:0)+(p.hh>=tHH?1:0)+(p.babip>0&&p.babip<0.260?1:0)+(p.kpct>0&&kb<=tKF?1:0)+(wobGap<=-0.020?1:0);
-  const bf=(p.xera>0&&gap<=-tGap?1:0)+(p.hh>0&&p.hh<30?1:0)+(p.babip>=0.360?1:0)+(p.kpct>0&&kb>=tKB?1:0)+(wobGap>=0.020?1:0);
-  if(ff>=2&&fadeScore>buyScore) return'fade';
-  if(bf>=2&&buyScore>fadeScore) return'buy';
-  return'neutral';
-}
-
-function buildAllPitchers(){
-  const keys=new Set([...Object.keys(csv1),...Object.keys(csv2)]);
-  allPitchers=[];
-  keys.forEach(key=>{
-    const r1=csv1[key]||{},r2=csv2[key]||{};
-    const m={...r1,...r2};
-    const name=m.name||key;
-    if(!name||name.length<2) return;
-    const p={
-      name,team:'—',
-      era:extractVal(m,'era'),
-      xera:extractVal(m,'xera'),
-      hh:extractVal(m,'hard_hit_percent'),
-      babip:extractVal(m,'babip','p_babip','batting_avg_on_balls_in_play'),
-      kpct:extractVal(m,'k_percent'),
-      bbpct:extractVal(m,'bb_percent'),
-      barrel:extractVal(m,'barrel_batted_rate'),
-      woba:extractRate(m,'woba'),
-      xwoba:extractRate(m,'est_woba','xwoba'),
-    };
-    const s=scorePitcher(p);
-    p.fadeScore=s.fadeScore;p.buyScore=s.buyScore;p.type=classifyPitcher(p);
-    allPitchers.push(p);
-    if(allPitchers.length===1) console.log('Sample pitcher keys:',Object.keys(m).join(','));
-    if(allPitchers.length===1) console.log('Sample woba/xwoba:',p.woba,p.xwoba,m['woba'],m['est_woba']);
-  });
-  pitcherData={};
-  allPitchers.forEach(p=>{ pitcherData[normalName(p.name)]=p; });
-}
-
-function buildTeamData(){
-  teamBatData={};
-  Object.values(csv3).forEach(row=>{
-    const teamRaw=row.team_name||row.team||row.name||'';
-    const abbr=row.team_abbreviation||row.team_abbr||teamRaw;
-    const team=(abbr||teamRaw).trim().toUpperCase().replace(/"/g,'');
-    if(!team) return;
-    teamBatData[team]={
-      team,
-      hh:extractVal(row,'hard_hit_percent'),
-      barrel:extractVal(row,'barrel_batted_rate'),
-      bbpct:extractVal(row,'bb_percent','walk_percent'),
-      kpct:extractVal(row,'k_percent','strikeout_percent'),
-      woba:extractVal(row,'woba','est_woba'),
-    };
-  });
-}
-
-function handleDrop(e,n){e.preventDefault();const f=e.dataTransfer.files[0];if(f)parseCSV(f,n);}
-function handleFile(e,n){const f=e.target.files[0];if(f)parseCSV(f,n);}
-
-function parseCSV(file,n){
-  const r=new FileReader();
-  r.onload=e=>{
-    const map=parseCSVToMap(e.target.result);
-    if(n===1)csv1=map;else csv2=map;
-    g('loaded'+n).style.display='block';
-    g('box'+n).classList.add('loaded');
-    const any=Object.keys(csv1).length+Object.keys(csv2).length;
-    if(any>0){g('runBtn').style.display='inline-block';g('runBtn').textContent=`Run model (${[csv1,csv2].filter(c=>Object.keys(c).length>0).length}/2 CSVs) →`;}
-  };
-  r.readAsText(file);
-}
-
-function loadSample(){
-  allPitchers=SAMPLE_PITCHERS.map(p=>{
-    const s=scorePitcher(p);
-    return{...p,...s,type:classifyPitcher(p)};
-  });
-  pitcherData={};
-  allPitchers.forEach(p=>{pitcherData[normalName(p.name)]=p;});
-  teamBatData={};
-  SAMPLE_TEAMS.forEach(t=>{teamBatData[t.team]=t;});
-  showMain(true);
-}
-
-function runModel(){
-  buildAllPitchers();
-  buildTeamData();
-  showMain(false);
-}
-
-function showMain(sample=false){
-  g('uploadSection').style.display='none';
-  g('mainSection').style.display='block';
-  g('resetBtn').style.display='inline-block';
-  const today=new Date().toISOString().split('T')[0];
-  g('slateDate').value=today;
-  const has3=Object.keys(teamBatData).length>0;
-  if(!sample){
-    const sb=g('statusBar');
-    sb.style.display='block';
-    sb.className='status-bar status-ok';
-    sb.textContent=`✓ ${allPitchers.length} pitchers loaded — click "Pull probable starters" to fetch today's slate and team batting stats automatically`;
-  }
-  renderSummary();
-  renderTable();
-}
-
-function resetApp(){
-  allPitchers=[];pitcherData={};teamBatData={};csv1={};csv2={};
-  sortCol='score';sortDir=-1;currentTab='all';
-  g('uploadSection').style.display='block';
-  g('mainSection').style.display='none';
-  g('resetBtn').style.display='none';
-  g('runBtn').style.display='none';
-  [1,2].forEach(n=>{g('loaded'+n).style.display='none';g('box'+n).classList.remove('loaded');g('csv'+n).value='';});
-  g('slateContent').innerHTML='';
-}
-
-function applyFilters(){
-  allPitchers.forEach(p=>{const s=scorePitcher(p);p.fadeScore=s.fadeScore;p.buyScore=s.buyScore;p.type=classifyPitcher(p);});
-  renderSummary();
-  renderTable();
-}
-
-function renderSummary(){
-  const fades=allPitchers.filter(p=>p.type==='fade').sort((a,b)=>(b.fadeScore-b.buyScore)-(a.fadeScore-a.buyScore));
-  const buys=allPitchers.filter(p=>p.type==='buy').sort((a,b)=>(b.buyScore-b.fadeScore)-(a.buyScore-a.fadeScore));
-  g('summaryCards').innerHTML=`
-    <div class="scard"><div class="scard-label">Total pitchers</div><div class="scard-val">${allPitchers.length}</div></div>
-    <div class="scard"><div class="scard-label">Fades</div><div class="scard-val fade-col">${fades.length}</div></div>
-    <div class="scard"><div class="scard-label">Buy-lows</div><div class="scard-val buy-col">${buys.length}</div></div>
-    <div class="scard"><div class="scard-label">Teams loaded</div><div class="scard-val">${Object.keys(teamBatData).length}</div></div>
-  `;
-  g('fadeList').innerHTML=fades.length
-    ?fades.map(p=>`<div class="signal-row"><span class="signal-name">${p.name}<span class="opp-tag">${p.team}</span></span><span class="signal-score fade-col">+${p.fadeScore-p.buyScore}</span></div>`).join('')
-    :'<div style="color:#bbb;font-size:12px;font-style:italic;padding:4px 0;">None with current thresholds</div>';
-  g('buyList').innerHTML=buys.length
-    ?buys.map(p=>`<div class="signal-row"><span class="signal-name">${p.name}<span class="opp-tag">${p.team}</span></span><span class="signal-score buy-col">+${p.buyScore-p.fadeScore}</span></div>`).join('')
-    :'<div style="color:#bbb;font-size:12px;font-style:italic;padding:4px 0;">None with current thresholds</div>';
-}
-
-async function fetchSlate(){
-  const date=g('slateDate').value;
-  if(!date){g('slateStatus').textContent='Pick a date first';return;}
-  g('slateStatus').innerHTML='<span class="spinner"></span>Fetching probable starters & team stats...';
-  g('slateContent').innerHTML='';
-  try{
-    // Fetch probable pitchers only - team stats are hardcoded
-    const schedRes = await fetch(`https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=${date}&hydrate=team,probablePitcher`);
-    if(!schedRes.ok) throw new Error('Schedule API error');
-    const schedData=await schedRes.json();
-    const dates=schedData.dates||[];
-    if(!dates.length||!dates[0].games?.length){
-      g('slateStatus').textContent='No games found for this date';
-      return;
-    }
-
-    // Hardcoded 2026 team batting stats (updated May 8 2026 from Fox Sports)
-    // BB% and K% calculated from PA totals. OPS used as primary offense quality signal.
-    const TEAM_STATS_2026 = [
-      {t:'LAD',ops:.863,obp:.364,slg:.499,bb:76,so:166,pa:735,hr:35},
-      {t:'ATL',ops:.803,obp:.344,slg:.459,bb:66,so:147,pa:767,hr:28},
-      {t:'HOU',ops:.787,obp:.353,slg:.434,bb:93,so:167,pa:826,hr:24},
-      {t:'WSH',ops:.749,obp:.337,slg:.412,bb:68,so:161,pa:791,hr:22},
-      {t:'LAA',ops:.752,obp:.338,slg:.414,bb:98,so:202,pa:825,hr:34},
-      {t:'CHC',ops:.748,obp:.346,slg:.402,bb:89,so:166,pa:757,hr:22},
-      {t:'PIT',ops:.745,obp:.346,slg:.399,bb:85,so:179,pa:792,hr:22},
-      {t:'MIL',ops:.716,obp:.340,slg:.376,bb:95,so:163,pa:741,hr:18},
-      {t:'MIN',ops:.720,obp:.332,slg:.388,bb:87,so:176,pa:759,hr:26},
-      {t:'TB', ops:.719,obp:.335,slg:.384,bb:66,so:136,pa:747,hr:16},
-      {t:'TEX',ops:.714,obp:.315,slg:.399,bb:71,so:190,pa:758,hr:23},
-      {t:'BAL',ops:.709,obp:.328,slg:.381,bb:83,so:182,pa:757,hr:18},
-      {t:'STL',ops:.706,obp:.329,slg:.377,bb:82,so:150,pa:737,hr:22},
-      {t:'CLE',ops:.697,obp:.317,slg:.380,bb:80,so:160,pa:777,hr:21},
-      {t:'NYY',ops:.696,obp:.313,slg:.383,bb:92,so:188,pa:746,hr:25},
-      {t:'ARI',ops:.691,obp:.293,slg:.398,bb:48,so:166,pa:727,hr:16},
-      {t:'DET',ops:.693,obp:.322,slg:.371,bb:73,so:165,pa:742,hr:14},
-      {t:'SD', ops:.689,obp:.309,slg:.380,bb:70,so:150,pa:744,hr:17},
-      {t:'PHI',ops:.682,obp:.308,slg:.374,bb:62,so:162,pa:718,hr:20},
-      {t:'TOR',ops:.680,obp:.308,slg:.372,bb:59,so:132,pa:717,hr:17},
-      {t:'MIA',ops:.733,obp:.331,slg:.402,bb:66,so:160,pa:754,hr:15},
-      {t:'ATH',ops:.663,obp:.307,slg:.356,bb:72,so:192,pa:746,hr:17},
-      {t:'OAK',ops:.663,obp:.307,slg:.356,bb:72,so:192,pa:746,hr:17},
-      {t:'BOS',ops:.664,obp:.317,slg:.347,bb:64,so:169,pa:719,hr:12},
-      {t:'COL',ops:.674,obp:.303,slg:.371,bb:60,so:204,pa:745,hr:20},
-      {t:'SF', ops:.659,obp:.293,slg:.366,bb:41,so:150,pa:720,hr:12},
-      {t:'SEA',ops:.646,obp:.317,slg:.329,bb:93,so:199,pa:793,hr:17},
-      {t:'KC', ops:.642,obp:.301,slg:.341,bb:69,so:167,pa:725,hr:16},
-      {t:'CWS',ops:.625,obp:.295,slg:.330,bb:74,so:190,pa:735,hr:17},
-      {t:'NYM',ops:.632,obp:.293,slg:.339,bb:60,so:162,pa:754,hr:14},
-      {t:'CIN',ops:.620,obp:.293,slg:.327,bb:84,so:184,pa:738,hr:21},
-    ];
-    TEAM_STATS_2026.forEach(r=>{
-      const bbpct=(r.bb/r.pa)*100;
-      const kpct=(r.so/r.pa)*100;
-      const hrRate=(r.hr/(r.pa*0.87))*100; // approx AB from PA
-      const entry={team:r.t,ops:r.ops,obp:r.obp,slg:r.slg,bbpct,kpct,hrRate,hh:r.ops*40,barrel:r.slg*15};
-      teamBatData[r.t]=entry;
-    });
-    const ABBR_ALIASES={'AZ':'ARI','KC':'KCR','SD':'SDP','SF':'SFG','TB':'TBR','WSH':'WSN','CWS':'CHW','WAS':'WSN'};
-    Object.entries(ABBR_ALIASES).forEach(([api,our])=>{ if(teamBatData[our]) teamBatData[api]=teamBatData[our]; if(teamBatData[api]) teamBatData[our]=teamBatData[api]; });
-    const teamCount=Object.keys(teamBatData).filter(k=>k.length<=3).length;
-    g('slateStatus').textContent=`${dates[0].games.length} games · ${teamCount} teams loaded`;
-
-    renderSlate(dates[0].games);
-  }catch(e){
-    g('slateStatus').textContent='Could not reach MLB API — check your internet connection';
-    console.error(e);
-  }
-}
-
-function renderSlate(games){
-  const cards=games.map(game=>{
-    const home=game.teams?.home||{};
-    const away=game.teams?.away||{};
-    const homeName=home.team?.name||'';
-    const awayName=away.team?.name||'';
-    const homeAbbr=(home.team?.abbreviation||homeName.slice(0,3)).toUpperCase();
-    const awayAbbr=(away.team?.abbreviation||awayName.slice(0,3)).toUpperCase();
-    const homeId=String(home.team?.id||'');
-    const awayId=String(away.team?.id||'');
-    const hp=home.probablePitcher;
-    const ap=away.probablePitcher;
-
-    const getTeamData=(abbr,name,id)=>{
-      return teamBatData[abbr]||teamBatData[name?.toLowerCase()]||teamBatData[id]||null;
-    };
-
-    const renderPitcher=(pitcher,oppData,pitcherTeamAbbr,oppAbbr)=>{
-      if(!pitcher) return`<div class="pitcher-row"><div class="pitcher-info"><div class="pitcher-name" style="color:#bbb;">TBD</div><div class="pitcher-team">${pitcherTeamAbbr}</div></div></div>`;
-      const fullName=pitcher.fullName||'';
-      const pData=pitcherData[normalName(fullName)];
-      if(!pData){
-        return`<div class="pitcher-row">
-          <div class="pitcher-info">
-            <div class="pitcher-name">${fullName}</div>
-            <div class="pitcher-team">${pitcherTeamAbbr} vs ${oppAbbr}</div>
-            <div class="pitcher-opp no-data">Not in pitcher data</div>
-          </div>
-          <div class="score-block"><span class="badge neutral-badge">No data</span></div>
-        </div>`;
-      }
-      const{fadeScore,buyScore}=scorePitcher(pData);
-      const{adj,detail}=oppAdjustment(pData,oppData);
-      const type=pData.type;
-      const baseNet=type==='fade'?fadeScore-buyScore:type==='buy'?buyScore-fadeScore:0;
-      const finalScore=baseNet+adj;
-      const scoreColor=type==='fade'?'#a32d2d':type==='buy'?'#3b6d11':'#888';
-      const adjStr=adj>0?`<span class="adj-pos">+${adj} opp</span>`:adj<0?`<span class="adj-neg">${adj} opp</span>`:'';
-      const badge=type==='fade'?'<span class="badge fade-badge">Fade</span>':type==='buy'?'<span class="badge buy-badge">Buy-low</span>':'<span class="badge neutral-badge">Neutral</span>';
-      const strong=finalScore>30?'<span class="badge strong-badge" style="margin-left:4px;">Strong</span>':'';
-      const oppLabel=oppData?`<strong>${pitcherTeamAbbr}</strong> vs <strong>${oppData.team}</strong> · OPS ${oppData.ops.toFixed(3)}`:`<strong>${pitcherTeamAbbr}</strong> vs ${oppAbbr}`;
-      return`<div class="pitcher-row">
-        <div class="pitcher-info">
-          <div class="pitcher-name">${fullName} ${badge}${strong}</div>
-          <div class="pitcher-team" style="font-size:12px;color:#555;">${oppLabel}</div>
-          <div class="pitcher-opp" style="color:#888;">${detail}</div>
-        </div>
-        <div class="score-block">
-          <div class="matchup-score" style="color:${scoreColor};">${finalScore>0?'+':''}${finalScore}</div>
-          <div class="score-breakdown">Base ${baseNet>0?'+':''}${baseNet} ${adjStr}</div>
-        </div>
-      </div>`;
-    };
-
-    const gameTime=new Date(game.gameDate).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
-    return`<div class="game-card">
-      <div class="game-header">${awayName} @ ${homeName} · ${gameTime}</div>
-      ${renderPitcher(ap,getTeamData(homeAbbr,homeName,homeId),awayAbbr,homeAbbr)}
-      ${renderPitcher(hp,getTeamData(awayAbbr,awayName,awayId),homeAbbr,awayAbbr)}
-    </div>`;
-  }).join('');
-  g('slateContent').innerHTML=`<div class="slate-grid">${cards}</div>`;
-}
-
-function switchTab(tab,el){
-  currentTab=tab;
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
-  renderTable();
-}
-
-function sortBy(col){
-  if(sortCol===col)sortDir*=-1;else{sortCol=col;sortDir=-1;}
-  renderTable();
-}
-
-function renderTable(){
-  const search=g('searchInput')?.value?.toLowerCase()||'';
-  const team=g('teamFilter')?.value||'';
-  const tGap=tv('tGap',1.75),tHH=tv('tHH',36),tKF=tv('tKBBFade',10),tKB=tv('tKBBBuy',20);
-
-  let data=allPitchers.filter(p=>{
-    if(search&&!p.name.toLowerCase().includes(search))return false;
-    if(team&&p.team!==team)return false;
-    if(currentTab==='fade'&&p.type!=='fade')return false;
-    if(currentTab==='buy'&&p.type!=='buy')return false;
-    return true;
-  });
-
-  data.sort((a,b)=>{
-    let va,vb;
-    if(sortCol==='score'){va=a.fadeScore-a.buyScore;vb=b.fadeScore-b.buyScore;}
-    else if(sortCol==='gap'){va=a.era-a.xera;vb=b.era-b.xera;}
-    else if(sortCol==='kbb'){va=kbb(a);vb=kbb(b);}
-    else if(sortCol==='wobagap'){va=(a.woba||0)-(a.xwoba||0);vb=(b.woba||0)-(b.xwoba||0);}
-    else{va=a[sortCol]||0;vb=b[sortCol]||0;}
-    return sortDir*(va-vb);
-  });
-
-  const teams=[...new Set(allPitchers.map(p=>p.team).filter(t=>t&&t!=='—'))].sort();
-  const sel=g('teamFilter');
-  const cur=sel.value;
-  sel.innerHTML='<option value="">All teams</option>'+teams.map(t=>`<option value="${t}"${t===cur?' selected':''}>${t}</option>`).join('');
-
-  if(!data.length){g('tableWrap').innerHTML='<div style="text-align:center;padding:3rem;color:#888;">No pitchers match filters</div>';return;}
-
-  const arr=col=>sortCol===col?(sortDir>0?'↑':'↓'):'';
-  const fmt=(v,dec,sfx='')=>v>0?v.toFixed(dec)+sfx:'—';
-  const fmtB=(v,dec)=>v>0?v.toFixed(dec):'—';
-
-  g('tableWrap').innerHTML=`<table>
-    <thead><tr>
-      <th onclick="sortBy('name')">Pitcher ${arr('name')}</th>
-      <th onclick="sortBy('team')">Team ${arr('team')}</th>
-      <th onclick="sortBy('type')">Signal</th>
-      <th onclick="sortBy('score')">Score ${arr('score')}</th>
-      <th onclick="sortBy('era')">ERA ${arr('era')}</th>
-      <th onclick="sortBy('xera')">xERA ${arr('xera')}</th>
-      <th onclick="sortBy('gap')">Gap ${arr('gap')}</th>
-      <th onclick="sortBy('hh')">Hard hit% ${arr('hh')}</th>
-      <th onclick="sortBy('babip')">BABIP ${arr('babip')}</th>
-      <th onclick="sortBy('kbb')">K-BB% ${arr('kbb')}</th>
-      <th onclick="sortBy('barrel')">Barrel% ${arr('barrel')}</th>
-      <th onclick="sortBy('woba')">wOBA ${arr('woba')}</th>
-      <th onclick="sortBy('xwoba')">xwOBA ${arr('xwoba')}</th>
-      <th onclick="sortBy('wobagap')">wOBA gap ${arr('wobagap')}</th>
-    </tr></thead>
-    <tbody>${data.map(p=>{
-      const gap=p.era-p.xera;
-      const gapStr=p.xera>0?(gap>0?'+':'')+gap.toFixed(2):'—';
-      const gapColor=p.xera>0&&gap>=tGap?'#a32d2d':p.xera>0&&gap<=-tGap?'#3b6d11':'#1a1a1a';
-      const kb=kbb(p);
-      const kbStr=p.kpct>0?(kb>0?'+':'')+kb.toFixed(1)+'%':'—';
-      const kbColor=p.kpct>0&&kb<=tKF?'#a32d2d':p.kpct>0&&kb>=tKB?'#3b6d11':'#1a1a1a';
-      const hhF=p.hh>=tHH?'<span class="flag">▲</span>':p.hh>0&&p.hh<30?'<span class="flag-ok">▼</span>':'';
-      const babipF=p.babip>0&&p.babip<0.260?'<span class="flag">▲</span>':p.babip>=0.360?'<span class="flag-ok">▼</span>':'';
-      const badge=p.type==='fade'?'<span class="badge fade-badge">Fade</span>':p.type==='buy'?'<span class="badge buy-badge">Buy-low</span>':'<span class="badge neutral-badge">Neutral</span>';
-      const net=p.fadeScore-p.buyScore;
-      const bw=Math.min(Math.abs(net),60);
-      const bc=net>0?'#e24b4a':'#639922';
-      const scoreEl=`<div class="score-bar-wrap"><div class="score-bar" style="width:${bw}px;background:${bc};"></div><span style="font-weight:700;color:${bc};min-width:28px;text-align:right;">${net>0?'+':''}${net}</span></div>`;
-      return`<tr>
-        <td style="font-weight:600;">${p.name}</td>
-        <td style="color:#888;">${p.team}</td>
-        <td>${badge}</td>
-        <td>${scoreEl}</td>
-        <td>${fmt(p.era,2)}</td>
-        <td>${fmt(p.xera,2)}</td>
-        <td style="font-weight:600;color:${gapColor};">${gapStr}</td>
-        <td>${fmt(p.hh,1,'%')}${hhF}</td>
-        <td>${fmtB(p.babip,3)}${babipF}</td>
-        <td style="font-weight:600;color:${kbColor};">${kbStr}</td>
-        <td>${fmt(p.barrel,1,'%')}</td>
-      </tr>`;
-    }).join('')}</tbody>
-  </table>`;
-}
-</script>
-</body>
-</html>
+last_name, first_name	player_id	year	pa	bip	ba	est_ba	est_ba_minus_ba_diff	slg	est_slg	est_slg_minus_slg_diff	woba	est_woba	est_woba_minus_woba_diff	era	xera	era_minus_xera_diff
+Alcantara, Sandy	645261	2026	242	182	0.24	0.243	-0.003	0.367	0.356	0.011	0.303	0.297	0.006	3.9	3.48	0.422
+Sánchez, Cristopher	650911	2026	236	154	0.26	0.217	0.043	0.352	0.338	0.014	0.297	0.267	0.03	2.11	2.78	-0.666
+Fried, Max	608331	2026	227	159	0.185	0.201	-0.016	0.239	0.267	-0.028	0.233	0.249	-0.016	2.92	2.42	0.495
+Kirby, George	669923	2026	227	165	0.246	0.229	0.017	0.327	0.324	0.003	0.286	0.272	0.014	2.84	2.89	-0.048
+Williams, Gavin	668909	2026	225	136	0.213	0.236	-0.023	0.391	0.431	-0.04	0.307	0.327	-0.02	3.74	4.29	-0.549
+Elder, Bryce	693821	2026	217	142	0.18	0.208	-0.028	0.263	0.314	-0.051	0.247	0.273	-0.026	1.81	2.91	-1.099
+Soriano, José	667755	2026	215	134	0.191	0.239	-0.048	0.278	0.391	-0.113	0.251	0.309	-0.058	1.66	3.79	-2.134
+Severino, Luis	622663	2026	211	133	0.253	0.242	0.011	0.393	0.396	-0.003	0.345	0.338	0.007	4.07	4.62	-0.552
+Gausman, Kevin	592332	2026	209	152	0.239	0.248	-0.009	0.381	0.409	-0.028	0.288	0.297	-0.009	3.86	3.48	0.377
+Webb, Logan	657277	2026	208	147	0.275	0.28	-0.005	0.413	0.419	-0.006	0.336	0.336	0	5.06	4.56	0.503
+Gilbert, Logan	669302	2026	204	139	0.253	0.264	-0.011	0.458	0.451	0.007	0.332	0.33	0.002	3.78	4.38	-0.6
+Abbott, Andrew	671096	2026	203	150	0.275	0.281	-0.006	0.396	0.421	-0.025	0.334	0.342	-0.008	4.47	4.74	-0.272
+Schlittler, Cam	693645	2026	202	134	0.177	0.214	-0.037	0.234	0.326	-0.092	0.205	0.253	-0.048	1.35	2.5	-1.15
+Wacha, Michael	608379	2026	201	140	0.188	0.223	-0.035	0.326	0.394	-0.068	0.269	0.304	-0.035	2.63	3.65	-1.02
+Rodriguez, Eduardo	593958	2026	200	145	0.202	0.254	-0.052	0.326	0.431	-0.105	0.283	0.338	-0.055	2.25	4.62	-2.37
+Kochanowicz, Jack	686799	2026	200	144	0.221	0.274	-0.053	0.279	0.413	-0.134	0.283	0.35	-0.067	3.97	5	-1.029
+Eovaldi, Nathan	543135	2026	200	140	0.247	0.264	-0.017	0.43	0.447	-0.017	0.321	0.331	-0.01	4.15	4.41	-0.256
+Bradley, Taj	671737	2026	199	128	0.219	0.234	-0.015	0.365	0.395	-0.03	0.297	0.311	-0.014	2.87	3.84	-0.968
+Baz, Shane	669358	2026	198	139	0.292	0.271	0.021	0.497	0.427	0.07	0.369	0.339	0.03	5.48	4.65	0.831
+Lugo, Seth	607625	2026	196	137	0.27	0.27	0	0.365	0.432	-0.067	0.315	0.333	-0.018	3.21	4.47	-1.26
+Valdez, Framber	664285	2026	195	141	0.261	0.258	0.003	0.386	0.411	-0.025	0.326	0.328	-0.002	4.57	4.32	0.249
+Bibee, Tanner	676440	2026	194	130	0.246	0.236	0.01	0.406	0.388	0.018	0.326	0.31	0.016	4.17	3.81	0.359
+Burrows, Mike	681347	2026	194	136	0.292	0.247	0.045	0.472	0.392	0.08	0.365	0.309	0.056	5.04	3.79	1.247
+Martinez, Nick	607259	2026	193	150	0.223	0.257	-0.034	0.324	0.411	-0.087	0.268	0.312	-0.044	1.7	3.87	-2.171
+Cabrera, Edward	665795	2026	192	133	0.266	0.261	0.005	0.422	0.427	-0.005	0.332	0.329	0.003	3.88	4.35	-0.465
+Holmes, Clay	605280	2026	192	138	0.19	0.252	-0.062	0.276	0.366	-0.09	0.248	0.308	-0.06	1.86	3.76	-1.898
+Martin, Davis	663436	2026	192	127	0.223	0.261	-0.038	0.33	0.403	-0.073	0.274	0.314	-0.04	1.62	3.92	-2.3
+Ashcraft, Braxton	677952	2026	191	125	0.214	0.197	0.017	0.341	0.303	0.038	0.276	0.257	0.019	2.77	2.58	0.194
+Sale, Chris	519242	2026	191	118	0.178	0.208	-0.03	0.305	0.348	-0.043	0.255	0.28	-0.025	2.2	3.07	-0.866
+Cease, Dylan	656302	2026	191	105	0.224	0.216	0.008	0.276	0.298	-0.022	0.272	0.274	-0.002	2.58	2.94	-0.359
+Luzardo, Jesús	666200	2026	190	119	0.278	0.236	0.042	0.415	0.351	0.064	0.334	0.286	0.048	5.98	3.21	2.767
+Cavalli, Cade	676917	2026	190	120	0.284	0.246	0.038	0.364	0.353	0.011	0.342	0.323	0.019	4.02	4.17	-0.153
+Lorenzen, Michael	547179	2026	190	149	0.356	0.316	0.04	0.569	0.488	0.081	0.426	0.373	0.053	6.92	5.81	1.113
+Griffin, Foster	656492	2026	190	131	0.192	0.244	-0.052	0.331	0.417	-0.086	0.271	0.319	-0.048	2.12	4.06	-1.939
+Cantillo, Joey	676282	2026	188	126	0.242	0.235	0.007	0.394	0.382	0.012	0.324	0.312	0.012	2.98	3.87	-0.892
+Detmers, Reid	672282	2026	188	122	0.236	0.214	0.022	0.364	0.322	0.042	0.3	0.273	0.027	4.33	2.91	1.418
+Imanaga, Shota	684007	2026	187	121	0.179	0.214	-0.035	0.312	0.366	-0.054	0.246	0.279	-0.033	2.28	3.05	-0.768
+Woo, Bryan	693433	2026	187	139	0.224	0.238	-0.014	0.374	0.416	-0.042	0.28	0.3	-0.02	4.02	3.55	0.471
+Bubic, Kris	663460	2026	187	116	0.19	0.228	-0.038	0.307	0.378	-0.071	0.279	0.316	-0.037	3.5	3.98	-0.484
+Cecconi, Slade	677944	2026	187	137	0.297	0.286	0.011	0.491	0.495	-0.004	0.375	0.368	0.007	6.15	5.63	0.516
+Leiter, Jack	683004	2026	187	118	0.251	0.254	-0.003	0.425	0.437	-0.012	0.339	0.338	0.001	4.85	4.62	0.232
+Taillon, Jameson	592791	2026	186	128	0.214	0.227	-0.013	0.446	0.453	-0.007	0.323	0.325	-0.002	3.94	4.23	-0.288
+Keller, Mitch	656605	2026	186	136	0.206	0.268	-0.062	0.282	0.38	-0.098	0.254	0.313	-0.059	2.87	3.89	-1.018
+Hancock, Emerson	676106	2026	185	124	0.224	0.234	-0.01	0.408	0.446	-0.038	0.3	0.314	-0.014	3.21	3.92	-0.71
+Bradish, Kyle	680694	2026	185	117	0.286	0.239	0.047	0.466	0.413	0.053	0.371	0.328	0.043	4.83	4.32	0.509
+Soroka, Michael	647336	2026	185	123	0.266	0.272	-0.006	0.402	0.456	-0.054	0.327	0.343	-0.016	3.53	4.78	-1.249
+Peralta, Freddy	642547	2026	185	122	0.207	0.244	-0.037	0.305	0.363	-0.058	0.278	0.31	-0.032	3.12	3.81	-0.695
+Burns, Chase	695505	2026	184	120	0.196	0.21	-0.014	0.333	0.355	-0.022	0.272	0.283	-0.011	2.11	3.14	-1.034
+Nola, Aaron	605400	2026	183	124	0.281	0.261	0.02	0.473	0.432	0.041	0.357	0.328	0.029	5.14	4.32	0.823
+Mahle, Tyler	641816	2026	182	120	0.263	0.253	0.01	0.45	0.42	0.03	0.352	0.332	0.02	5.18	4.44	0.744
+Pérez, Eury	691587	2026	182	113	0.242	0.236	0.006	0.465	0.451	0.014	0.357	0.348	0.009	5.01	4.94	0.068
+Civale, Aaron	650644	2026	181	133	0.276	0.263	0.013	0.411	0.416	-0.005	0.327	0.323	0.004	2.59	4.17	-1.578
+Springs, Jeffrey	605488	2026	181	128	0.232	0.217	0.015	0.415	0.389	0.026	0.309	0.298	0.011	3.89	3.5	0.386
+Junk, Janson	676083	2026	181	136	0.232	0.252	-0.02	0.369	0.411	-0.042	0.288	0.311	-0.023	3.25	3.84	-0.592
+Ryan, Joe	657746	2026	181	120	0.202	0.218	-0.016	0.331	0.351	-0.02	0.272	0.289	-0.017	3.42	3.28	0.145
+Weathers, Ryan	677960	2026	181	114	0.222	0.251	-0.029	0.365	0.445	-0.08	0.288	0.325	-0.037	3	4.23	-1.23
+Vásquez, Randy	681190	2026	181	124	0.239	0.259	-0.02	0.38	0.454	-0.074	0.304	0.339	-0.035	3.04	4.65	-1.605
+Peterson, David	656849	2026	181	127	0.281	0.27	0.011	0.4	0.389	0.011	0.328	0.332	-0.004	5.49	4.44	1.052
+Messick, Parker	800048	2026	180	117	0.208	0.229	-0.021	0.315	0.35	-0.035	0.261	0.28	-0.019	2.3	3.07	-0.772
+King, Michael	650633	2026	180	110	0.182	0.216	-0.034	0.299	0.361	-0.062	0.275	0.308	-0.033	2.76	3.76	-1.001
+Ray, Robbie	592662	2026	180	115	0.199	0.214	-0.015	0.385	0.454	-0.069	0.296	0.323	-0.027	2.76	4.17	-1.411
+Dollander, Chase	801403	2026	180	113	0.218	0.207	0.011	0.365	0.362	0.003	0.301	0.295	0.006	3.35	3.43	-0.081
+Ober, Bailey	641927	2026	180	131	0.221	0.243	-0.022	0.38	0.386	-0.006	0.303	0.311	-0.008	4.19	3.84	0.346
+Leahy, Kyle	681517	2026	180	127	0.289	0.296	-0.007	0.465	0.495	-0.03	0.372	0.379	-0.007	4.31	6.04	-1.729
+Burke, Sean	680732	2026	179	130	0.23	0.252	-0.022	0.382	0.397	-0.015	0.299	0.309	-0.01	3.68	3.79	-0.108
+Bassitt, Chris	605135	2026	179	129	0.316	0.294	0.022	0.408	0.392	0.016	0.368	0.351	0.017	5.21	5.04	0.171
+Liberatore, Matthew	669461	2026	179	134	0.277	0.286	-0.009	0.465	0.497	-0.032	0.352	0.364	-0.012	4.07	5.48	-1.409
+May, Dustin	669160	2026	179	133	0.305	0.284	0.021	0.451	0.435	0.016	0.359	0.339	0.02	4.85	4.65	0.202
+Woods Richardson, Simeon	680573	2026	179	142	0.323	0.288	0.035	0.544	0.49	0.054	0.409	0.372	0.037	6.92	5.77	1.153
+Castillo, Luis	622491	2026	178	124	0.308	0.299	0.009	0.491	0.491	0	0.382	0.372	0.01	6.57	5.77	0.804
+Singer, Brady	663903	2026	178	139	0.323	0.299	0.024	0.543	0.508	0.035	0.399	0.372	0.027	5.63	5.77	-0.135
+Mlodzinski, Carmen	669387	2026	177	120	0.283	0.284	-0.001	0.396	0.427	-0.031	0.33	0.341	-0.011	4.5	4.71	-0.21
+Wrobleski, Justin	680736	2026	177	142	0.201	0.264	-0.063	0.274	0.412	-0.138	0.246	0.32	-0.074	2.42	4.09	-1.672
+Roupp, Landen	694738	2026	177	105	0.187	0.198	-0.011	0.245	0.246	-0.001	0.253	0.255	-0.002	3.09	2.54	0.552
+Misiorowski, Jacob	694819	2026	177	85	0.162	0.19	-0.028	0.253	0.279	-0.026	0.247	0.264	-0.017	2.46	2.72	-0.265
+Early, Connelly	813349	2026	177	116	0.221	0.242	-0.021	0.357	0.441	-0.084	0.308	0.341	-0.033	3.16	4.71	-1.546
+Irvin, Jake	663623	2026	176	114	0.247	0.255	-0.008	0.396	0.459	-0.063	0.331	0.352	-0.021	5.22	5.07	0.148
+Gore, MacKenzie	669022	2026	176	106	0.23	0.233	-0.003	0.395	0.398	-0.003	0.324	0.323	0.001	5.17	4.17	1.005
+Meyer, Max	676974	2026	176	113	0.197	0.25	-0.053	0.299	0.392	-0.093	0.266	0.318	-0.052	2.79	4.03	-1.244
+McLean, Nolan	690997	2026	175	104	0.18	0.192	-0.012	0.28	0.283	-0.003	0.242	0.245	-0.003	2.78	2.34	0.439
+deGrom, Jacob	594798	2026	174	109	0.199	0.221	-0.022	0.343	0.392	-0.049	0.255	0.278	-0.023	2.62	3.02	-0.401
+Warren, Will	701542	2026	174	109	0.242	0.242	0	0.385	0.39	-0.005	0.303	0.303	0	3.46	3.63	-0.174
+Sugano, Tomoyuki	608372	2026	173	137	0.241	0.294	-0.053	0.481	0.579	-0.098	0.333	0.398	-0.065	4.07	6.81	-2.739
+Chandler, Bubba	696149	2026	173	111	0.21	0.226	-0.016	0.406	0.42	-0.014	0.333	0.341	-0.008	4.62	4.71	-0.095
+Rasmussen, Drew	656876	2026	170	120	0.198	0.232	-0.034	0.346	0.373	-0.027	0.254	0.276	-0.022	3.16	2.98	0.184
+Yamamoto, Yoshinobu	808967	2026	170	119	0.215	0.259	-0.044	0.361	0.444	-0.083	0.279	0.325	-0.046	3.09	4.23	-1.138
+Gallen, Zac	668678	2026	169	131	0.292	0.301	-0.009	0.435	0.486	-0.051	0.347	0.363	-0.016	4.7	5.45	-0.754
+McGreevy, Michael	700241	2026	168	125	0.184	0.275	-0.091	0.31	0.501	-0.191	0.244	0.352	-0.108	2.18	5.07	-2.886
+Littell, Zack	641793	2026	168	138	0.3	0.313	-0.013	0.613	0.595	0.018	0.409	0.417	-0.008	6.94	7.66	-0.724
+Lopez, Jacob	682052	2026	167	115	0.273	0.196	0.077	0.489	0.328	0.161	0.379	0.292	0.087	6.11	3.35	2.763
+Lowder, Rhett	695076	2026	166	121	0.243	0.279	-0.036	0.358	0.436	-0.078	0.311	0.351	-0.04	5.4	5.04	0.36
+Houser, Adrian	605288	2026	166	135	0.298	0.295	0.003	0.543	0.506	0.037	0.387	0.366	0.021	6.19	5.55	0.643
+Rea, Colin	607067	2026	166	118	0.265	0.27	-0.005	0.371	0.443	-0.072	0.312	0.334	-0.022	4.03	4.5	-0.474
+Nelson, Ryne	669194	2026	166	116	0.225	0.251	-0.026	0.457	0.514	-0.057	0.326	0.352	-0.026	5.68	5.07	0.614
+Skubal, Tarik	669373	2026	166	114	0.222	0.262	-0.04	0.329	0.354	-0.025	0.259	0.284	-0.025	2.7	3.16	-0.46
+Pallante, Andre	669467	2026	165	117	0.24	0.243	-0.003	0.384	0.421	-0.037	0.323	0.333	-0.01	4.34	4.47	-0.131
+Cameron, Noah	702070	2026	164	118	0.293	0.305	-0.012	0.487	0.541	-0.054	0.37	0.389	-0.019	5.55	6.43	-0.879
+Kay, Anthony	641743	2026	163	116	0.277	0.296	-0.019	0.474	0.501	-0.027	0.373	0.395	-0.022	4.89	6.68	-1.794
+Flaherty, Jack	656427	2026	162	89	0.236	0.217	0.019	0.409	0.382	0.027	0.36	0.342	0.018	5.56	4.74	0.819
+Lauer, Eric	641778	2026	162	119	0.264	0.274	-0.01	0.542	0.528	0.014	0.38	0.374	0.006	6.69	5.85	0.838
+Holmes, Grant	656550	2026	160	114	0.225	0.243	-0.018	0.38	0.423	-0.043	0.309	0.329	-0.02	4.34	4.35	-0.011
+Skenes, Paul	694973	2026	159	103	0.156	0.174	-0.018	0.265	0.283	-0.018	0.213	0.224	-0.011	2.36	1.96	0.397
+Bello, Brayan	678394	2026	158	118	0.338	0.31	0.028	0.554	0.56	-0.006	0.417	0.401	0.016	7.44	6.93	0.509
+Buehler, Walker	621111	2026	158	113	0.257	0.284	-0.027	0.368	0.442	-0.074	0.313	0.346	-0.033	5.2	4.87	0.332
+Sasaki, Roki	808963	2026	157	106	0.287	0.268	0.019	0.544	0.486	0.058	0.404	0.37	0.034	5.88	5.7	0.181
+Montero, Keider	672456	2026	155	118	0.205	0.23	-0.025	0.349	0.391	-0.042	0.263	0.291	-0.028	3.18	3.33	-0.154
+Fedde, Erick	607200	2026	155	115	0.219	0.236	-0.017	0.423	0.419	0.004	0.316	0.319	-0.003	3.79	4.06	-0.271
+Painter, Andrew	691725	2026	153	110	0.321	0.278	0.043	0.504	0.468	0.036	0.385	0.35	0.035	6.89	5	1.888
+Sheehan, Emmet	686218	2026	152	98	0.271	0.254	0.017	0.486	0.439	0.047	0.353	0.322	0.031	4.79	4.14	0.654
+Ragans, Cole	666142	2026	151	83	0.213	0.218	-0.005	0.488	0.452	0.036	0.36	0.345	0.015	4.84	4.84	0
+Ginn, J.T.	669372	2026	150	103	0.203	0.232	-0.029	0.368	0.369	-0.001	0.295	0.304	-0.009	3.62	3.65	-0.034
+Matz, Steven	571927	2026	149	107	0.209	0.268	-0.059	0.388	0.452	-0.064	0.299	0.342	-0.043	3.86	4.74	-0.883
+Suarez, Ranger	624133	2026	148	106	0.197	0.24	-0.043	0.299	0.378	-0.079	0.249	0.296	-0.047	2.77	3.45	-0.681
+Glasnow, Tyler	607192	2026	148	86	0.149	0.18	-0.031	0.313	0.324	-0.011	0.238	0.252	-0.014	2.72	2.48	0.243
+McCullers Jr., Lance	621121	2026	148	89	0.246	0.239	0.007	0.46	0.391	0.069	0.365	0.334	0.031	7.41	4.5	2.912
+Mikolas, Miles	571945	2026	146	113	0.291	0.258	0.033	0.537	0.486	0.051	0.383	0.344	0.039	7.44	4.81	2.629
+Paddack, Chris	663978	2026	146	108	0.308	0.26	0.048	0.504	0.438	0.066	0.379	0.329	0.05	7.63	4.35	3.28
+Rocker, Kumar	677958	2026	145	104	0.277	0.276	0.001	0.423	0.469	-0.046	0.343	0.356	-0.013	5.01	5.2	-0.19
+Ohtani, Shohei	660271	2026	145	91	0.16	0.182	-0.022	0.26	0.265	-0.005	0.226	0.236	-0.01	0.97	2.17	-1.197
+Patrick, Chad	694477	2026	144	102	0.25	0.256	-0.006	0.371	0.397	-0.026	0.319	0.326	-0.007	3.15	4.26	-1.114
+Kikuchi, Yusei	579328	2026	142	94	0.282	0.258	0.024	0.444	0.446	-0.002	0.351	0.341	0.01	5.81	4.71	1.096
+McClanahan, Shane	663556	2026	141	92	0.183	0.225	-0.042	0.254	0.375	-0.121	0.243	0.301	-0.058	2.6	3.58	-0.984
+Harrison, Kyle	690986	2026	140	83	0.226	0.231	-0.005	0.339	0.342	-0.003	0.301	0.299	0.002	2.41	3.53	-1.124
+Crochet, Garrett	676979	2026	138	86	0.27	0.262	0.008	0.467	0.442	0.025	0.363	0.345	0.018	6.3	4.84	1.46
+Freeland, Kyle	607536	2026	136	96	0.293	0.288	0.005	0.512	0.468	0.044	0.379	0.356	0.023	6	5.2	0.8
+Pérez, Martín	527048	2026	134	97	0.193	0.257	-0.064	0.361	0.421	-0.06	0.283	0.332	-0.049	2.38	4.44	-2.058
+Rogers, Trevor	669432	2026	133	95	0.281	0.243	0.038	0.421	0.381	0.04	0.339	0.304	0.035	4.75	3.65	1.097
+Weiss, Ryan	680802	2026	131	81	0.315	0.27	0.045	0.568	0.488	0.08	0.432	0.38	0.052	7.62	6.07	1.545
+Sproat, Brandon	687075	2026	131	82	0.264	0.245	0.019	0.5	0.438	0.062	0.386	0.352	0.034	5.87	5.07	0.8
+Pfaadt, Brandon	694297	2026	128	91	0.252	0.247	0.005	0.459	0.443	0.016	0.35	0.343	0.007	5.83	4.78	1.05
+Márquez, Germán	608566	2026	128	96	0.272	0.274	-0.002	0.526	0.508	0.018	0.379	0.368	0.011	5.76	5.63	0.134
+Williamson, Brandon	682227	2026	128	86	0.255	0.276	-0.021	0.431	0.486	-0.055	0.365	0.39	-0.025	6.11	6.47	-0.363
+Mize, Casey	663554	2026	128	81	0.228	0.223	0.005	0.368	0.369	-0.001	0.298	0.295	0.003	2.9	3.43	-0.527
+Quintana, Jose	500779	2026	127	99	0.252	0.265	-0.013	0.449	0.432	0.017	0.339	0.334	0.005	3.9	4.5	-0.6
+Arrighetti, Spencer	681293	2026	125	74	0.206	0.255	-0.049	0.275	0.405	-0.13	0.295	0.362	-0.067	1.88	5.41	-3.526
+Corbin, Patrick	571578	2026	124	90	0.269	0.31	-0.041	0.389	0.499	-0.11	0.329	0.384	-0.055	3.6	6.23	-2.63
+Kelly, Merrill	518876	2026	124	86	0.308	0.346	-0.038	0.587	0.665	-0.078	0.424	0.46	-0.036	7.62	9.95	-2.335
+Woodruff, Brandon	605540	2026	121	88	0.216	0.221	-0.005	0.369	0.377	-0.008	0.277	0.28	-0.003	3.6	3.07	0.53
+Lambert, Peter	663567	2026	120	77	0.198	0.221	-0.023	0.264	0.343	-0.079	0.263	0.296	-0.033	2.76	3.45	-0.689
+Gray, Sonny	543243	2026	119	96	0.261	0.3	-0.039	0.405	0.491	-0.086	0.319	0.364	-0.045	3.54	5.48	-1.944
+López, Reynaldo	625643	2026	116	78	0.248	0.26	-0.012	0.446	0.441	0.005	0.347	0.347	0	3.71	4.9	-1.188
+Walker, Taijuan	592836	2026	115	86	0.353	0.313	0.04	0.657	0.582	0.075	0.461	0.412	0.049	9.13	7.43	1.702
+Scholtens, Jesse	669947	2026	115	81	0.216	0.253	-0.037	0.422	0.403	0.019	0.32	0.325	-0.005	3.29	4.23	-0.937
+Young, Brandon	687064	2026	115	85	0.243	0.242	0.001	0.398	0.435	-0.037	0.318	0.326	-0.008	4.15	4.26	-0.106
+Brown, Ben	676962	2026	114	78	0.175	0.206	-0.031	0.223	0.278	-0.055	0.215	0.257	-0.042	1.82	2.58	-0.76
+Manaea, Sean	640455	2026	112	72	0.302	0.272	0.03	0.49	0.459	0.031	0.388	0.359	0.029	6.56	5.31	1.247
+Watson, Ryan	670245	2026	111	83	0.306	0.309	-0.003	0.531	0.571	-0.04	0.398	0.408	-0.01	6.46	7.24	-0.775
+Agnos, Zach	688642	2026	111	81	0.278	0.282	-0.004	0.443	0.445	-0.002	0.345	0.342	0.003	5.84	4.74	1.098
+Ashby, Aaron	676879	2026	110	54	0.2	0.169	0.031	0.274	0.238	0.036	0.272	0.242	0.03	2.08	2.28	-0.203
+Lord, Brad	695418	2026	108	82	0.242	0.251	-0.009	0.354	0.411	-0.057	0.285	0.307	-0.022	3.55	3.73	-0.177
+Ramírez, Yohan	670990	2026	107	62	0.205	0.227	-0.022	0.341	0.312	0.029	0.294	0.291	0.003	4.13	3.33	0.795
+Blubaugh, AJ	805123	2026	106	70	0.23	0.214	0.016	0.425	0.412	0.013	0.336	0.338	-0.002	4.88	4.62	0.255
+Schultz, Noah	702273	2026	106	67	0.191	0.229	-0.038	0.348	0.371	-0.023	0.304	0.325	-0.021	4.68	4.23	0.45
+Teng, Kai-Wei	678906	2026	104	72	0.211	0.248	-0.037	0.358	0.373	-0.015	0.287	0.305	-0.018	3.12	3.68	-0.565
+Anderson, Drew	623454	2026	103	60	0.253	0.226	0.027	0.437	0.38	0.057	0.349	0.321	0.028	5.56	4.12	1.439
+Phillips, Tyler	663969	2026	102	64	0.205	0.237	-0.032	0.284	0.365	-0.081	0.283	0.32	-0.037	1.14	4.09	-2.949
+Ureña, Walbert	700712	2026	101	63	0.226	0.196	0.03	0.31	0.299	0.011	0.304	0.289	0.015	3.22	3.28	-0.056
+Suter, Brent	608718	2026	100	65	0.25	0.226	0.024	0.432	0.388	0.044	0.341	0.312	0.029	4.5	3.87	0.63
+Boyd, Matthew	571510	2026	100	63	0.266	0.258	0.008	0.404	0.443	-0.039	0.318	0.322	-0.004	6	4.14	1.86
+Assad, Javier	665871	2026	100	80	0.253	0.289	-0.036	0.407	0.443	-0.036	0.314	0.345	-0.031	6	4.84	1.16
+Svanson, Matt	694335	2026	98	65	0.321	0.335	-0.014	0.56	0.573	-0.013	0.429	0.432	-0.003	9.61	8.4	1.21
+Phillips, Connor	683175	2026	97	52	0.208	0.23	-0.022	0.306	0.356	-0.05	0.342	0.368	-0.026	5.4	5.63	-0.23
+Senga, Kodai	673540	2026	97	60	0.313	0.247	0.066	0.542	0.4	0.142	0.421	0.339	0.082	9	4.65	4.35
+Harris, Hogan	663687	2026	97	57	0.218	0.197	0.021	0.321	0.305	0.016	0.317	0.303	0.014	2.61	3.63	-1.017
+Myers, Tobias	668964	2026	97	73	0.228	0.229	-0.001	0.413	0.352	0.061	0.291	0.263	0.028	3.28	2.7	0.584
+Newcomb, Sean	656794	2026	96	65	0.256	0.249	0.007	0.384	0.33	0.054	0.31	0.286	0.024	3.18	3.21	-0.034
+Abel, Mick	690953	2026	93	57	0.275	0.274	0.001	0.35	0.413	-0.063	0.333	0.35	-0.017	3.98	5	-1.016
+Headrick, Brent	687396	2026	92	61	0.247	0.248	-0.001	0.37	0.389	-0.019	0.305	0.306	-0.001	2.08	3.71	-1.633
+Marinaccio, Ron	676760	2026	92	67	0.256	0.245	0.011	0.384	0.4	-0.016	0.308	0.303	0.005	4.37	3.63	0.738
+Morán, Jovani	663558	2026	91	56	0.173	0.185	-0.012	0.333	0.342	-0.009	0.292	0.297	-0.005	2.91	3.48	-0.572
+Morejon, Adrian	670970	2026	91	59	0.259	0.243	0.016	0.365	0.346	0.019	0.303	0.284	0.019	5.57	3.16	2.411
+Senzatela, Antonio	622608	2026	90	61	0.159	0.232	-0.073	0.183	0.326	-0.143	0.188	0.269	-0.081	1.11	2.83	-1.72
+Suarez, José	660761	2026	90	51	0.333	0.242	0.091	0.403	0.317	0.086	0.388	0.319	0.069	6.38	4.06	2.322
+Ferrer, José A.	678606	2026	90	68	0.305	0.222	0.083	0.354	0.288	0.066	0.322	0.254	0.068	1.8	2.52	-0.72
+Sulser, Cole	642121	2026	88	64	0.244	0.247	-0.003	0.346	0.439	-0.093	0.288	0.32	-0.032	2.61	4.09	-1.477
+Feltner, Ryan	663372	2026	88	63	0.275	0.278	-0.003	0.563	0.573	-0.01	0.391	0.389	0.002	6.3	6.43	-0.13
+Gómez, Yoendrys	672782	2026	87	63	0.257	0.286	-0.029	0.486	0.537	-0.051	0.359	0.393	-0.034	5.68	6.6	-0.916
+Tolle, Payton	801139	2026	87	53	0.177	0.164	0.013	0.278	0.264	0.014	0.241	0.226	0.015	2.78	2	0.779
+Mejia, Juan	675848	2026	87	52	0.286	0.233	0.053	0.377	0.362	0.015	0.332	0.297	0.035	4.66	3.48	1.175
+Waldron, Matt	663362	2026	86	64	0.308	0.23	0.078	0.564	0.385	0.179	0.404	0.3	0.104	7.71	3.55	4.164
+Sterner, Justin	686993	2026	86	57	0.256	0.213	0.043	0.41	0.316	0.094	0.321	0.261	0.06	4.12	2.66	1.459
+Festa, Matt	670036	2026	86	59	0.244	0.216	0.028	0.462	0.412	0.05	0.335	0.299	0.036	5.03	3.53	1.504
+Alexander, Tyler	641302	2026	86	64	0.299	0.236	0.063	0.377	0.312	0.065	0.33	0.274	0.056	2.25	2.94	-0.69
+Miles, Spencer	693686	2026	86	63	0.222	0.253	-0.031	0.321	0.362	-0.041	0.266	0.291	-0.025	3	3.33	-0.33
+Gil, Luis	661563	2026	85	62	0.211	0.262	-0.051	0.507	0.498	0.009	0.373	0.386	-0.013	6.05	6.31	-0.258
+Mayza, Tim	641835	2026	85	56	0.169	0.205	-0.036	0.299	0.323	-0.024	0.246	0.266	-0.02	3.43	2.76	0.669
+Banks, Tanner	621383	2026	85	55	0.342	0.261	0.081	0.461	0.365	0.096	0.387	0.311	0.076	5.94	3.84	2.1
+Nunez, Anthony	689296	2026	85	56	0.221	0.242	-0.021	0.429	0.439	-0.01	0.315	0.323	-0.008	4.05	4.17	-0.12
+Scherzer, Max	453286	2026	84	65	0.297	0.291	0.006	0.608	0.561	0.047	0.42	0.397	0.023	9.64	6.76	2.883
+Banda, Anthony	607455	2026	84	55	0.257	0.219	0.038	0.443	0.35	0.093	0.369	0.318	0.051	7.64	4.03	3.612
+Orze, Eric	679358	2026	83	56	0.243	0.239	0.004	0.314	0.347	-0.033	0.291	0.299	-0.008	4.26	3.53	0.733
+Brubaker, JT	664141	2026	83	57	0.286	0.301	-0.015	0.4	0.43	-0.03	0.348	0.363	-0.015	3.86	5.45	-1.593
+Fisher, Braydon	680755	2026	83	53	0.205	0.24	-0.035	0.329	0.367	-0.038	0.285	0.31	-0.025	2.91	3.81	-0.902
+Poulin, PJ	676571	2026	82	56	0.214	0.24	-0.026	0.4	0.439	-0.039	0.326	0.345	-0.019	3.32	4.84	-1.524
+Povich, Cade	700249	2026	82	62	0.257	0.272	-0.015	0.473	0.465	0.008	0.354	0.353	0.001	5.12	5.1	0.021
+Hurter, Brant	676428	2026	82	60	0.162	0.24	-0.078	0.243	0.348	-0.105	0.221	0.297	-0.076	1.66	3.48	-1.818
+Bruihl, Justin	677865	2026	82	55	0.222	0.278	-0.056	0.317	0.41	-0.093	0.321	0.376	-0.055	5	5.92	-0.92
+Bido, Osvaldo	674370	2026	81	56	0.224	0.273	-0.049	0.403	0.449	-0.046	0.348	0.378	-0.03	6.27	6	0.268
+Finnegan, Kyle	640448	2026	80	52	0.215	0.211	0.004	0.338	0.315	0.023	0.328	0.315	0.013	1.4	3.95	-2.553
+Graceffo, Gordon	700669	2026	80	59	0.162	0.283	-0.121	0.221	0.498	-0.277	0.235	0.376	-0.141	1.71	5.92	-4.206
+Seymour, Ian	693855	2026	80	50	0.275	0.255	0.02	0.449	0.468	-0.019	0.352	0.344	0.008	6	4.81	1.19
+Jax, Griffin	643377	2026	79	52	0.242	0.254	-0.012	0.394	0.452	-0.058	0.325	0.346	-0.021	5	4.87	0.13
+Bazardo, Eduard	660825	2026	79	55	0.25	0.251	-0.001	0.368	0.408	-0.04	0.294	0.322	-0.028	2.29	4.14	-1.852
+Rodriguez, Bradgley	699134	2026	78	59	0.211	0.196	0.015	0.296	0.259	0.037	0.244	0.221	0.023	1.83	1.91	-0.079
+Romero, JoJo	668941	2026	78	54	0.217	0.268	-0.051	0.377	0.459	-0.082	0.305	0.35	-0.045	3.26	5	-1.741
+Holton, Tyler	663947	2026	78	57	0.304	0.299	0.005	0.42	0.4	0.02	0.365	0.349	0.016	4.15	4.97	-0.816
+Leiter Jr., Mark	643410	2026	77	53	0.348	0.327	0.021	0.493	0.467	0.026	0.392	0.369	0.023	8.62	5.66	2.957
+Mattson, Isaac	676755	2026	77	55	0.269	0.32	-0.051	0.343	0.525	-0.182	0.318	0.396	-0.078	4.67	6.72	-2.047
+Peralta, Wandy	593974	2026	77	54	0.279	0.251	0.028	0.485	0.401	0.084	0.376	0.329	0.047	3	4.35	-1.35
+Bednar, David	670280	2026	77	50	0.271	0.215	0.056	0.4	0.297	0.103	0.317	0.257	0.06	3.71	2.58	1.126
+Wells, Tyler	669330	2026	76	53	0.261	0.239	0.022	0.435	0.404	0.031	0.325	0.302	0.023	3.44	3.6	-0.164
+Morris, Andrew	702193	2026	76	56	0.29	0.253	0.037	0.406	0.36	0.046	0.328	0.291	0.037	4.67	3.33	1.343
+Dreyer, Jack	676263	2026	76	50	0.203	0.221	-0.018	0.29	0.352	-0.062	0.256	0.282	-0.026	2.29	3.12	-0.832
+Brazobán, Huascar	623211	2026	75	52	0.182	0.222	-0.04	0.273	0.296	-0.023	0.26	0.284	-0.024	2.41	3.16	-0.749
+Topa, Justin	623437	2026	75	57	0.348	0.309	0.039	0.576	0.543	0.033	0.43	0.395	0.035	7.88	6.68	1.195
+Santana, Dennis	642701	2026	74	54	0.219	0.276	-0.057	0.391	0.453	-0.062	0.319	0.359	-0.04	3.63	5.31	-1.675
+Milner, Hoby	571948	2026	74	60	0.203	0.275	-0.072	0.297	0.442	-0.145	0.271	0.359	-0.088	2.46	5.31	-2.855
+Gordon, Tanner	685299	2026	74	50	0.294	0.231	0.063	0.574	0.47	0.104	0.389	0.313	0.076	6.35	3.89	2.463
+Junis, Jakob	596001	2026	73	57	0.152	0.254	-0.102	0.212	0.396	-0.184	0.206	0.315	-0.109	1.9	3.95	-2.055
+King, Bryan	687911	2026	73	50	0.262	0.231	0.031	0.338	0.288	0.05	0.308	0.274	0.034	3.24	2.94	0.3
+Pérez, Cionel	672335	2026	73	53	0.258	0.318	-0.06	0.371	0.631	-0.26	0.342	0.446	-0.104	6.19	9.14	-2.952
+Englert, Mason	669438	2026	73	56	0.309	0.303	0.006	0.559	0.597	-0.038	0.38	0.384	-0.004	5.63	6.23	-0.605
+Woodford, Jake	663765	2026	73	56	0.3	0.33	-0.03	0.371	0.472	-0.101	0.315	0.36	-0.045	4.41	5.34	-0.932
+Beeks, Jalen	656222	2026	73	50	0.212	0.233	-0.021	0.333	0.392	-0.059	0.271	0.298	-0.027	2.5	3.5	-1
+Rogers, Tyler	643511	2026	73	59	0.221	0.25	-0.029	0.25	0.286	-0.036	0.217	0.243	-0.026	2.04	2.3	-0.262
+Anderson, Shaun	641312	2026	73	52	0.27	0.287	-0.017	0.429	0.463	-0.034	0.356	0.37	-0.014	5.94	5.7	0.24
+Okert, Steven	595345	2026	73	54	0.234	0.245	-0.011	0.391	0.445	-0.054	0.31	0.331	-0.021	4.08	4.41	-0.335
+Rogers, Taylor	573124	2026	73	53	0.308	0.289	0.019	0.385	0.412	-0.027	0.34	0.354	-0.014	4.41	5.14	-0.732
+Parker, Mitchell	680730	2026	72	51	0.25	0.255	-0.005	0.438	0.41	0.028	0.334	0.32	0.014	5.82	4.09	1.734
+Latz, Jacob	656641	2026	72	51	0.074	0.154	-0.08	0.147	0.301	-0.154	0.129	0.22	-0.091	0.87	1.9	-1.029
+Clarke, Taylor	664199	2026	72	59	0.185	0.223	-0.038	0.277	0.369	-0.092	0.218	0.273	-0.055	2.33	2.91	-0.582
+Legumina, Casey	668984	2026	70	52	0.339	0.295	0.044	0.458	0.456	0.002	0.378	0.357	0.021	3.52	5.24	-1.718
+Schreiber, John	670167	2026	69	53	0.25	0.279	-0.029	0.429	0.472	-0.043	0.33	0.353	-0.023	3.38	5.1	-1.725
+Blackburn, Paul	621112	2026	69	51	0.246	0.258	-0.012	0.295	0.37	-0.075	0.295	0.321	-0.026	2.87	4.12	-1.248
+Drohan, Shane	675660	2026	69	50	0.226	0.232	-0.006	0.258	0.309	-0.051	0.255	0.272	-0.017	3.38	2.89	0.485
+Hart, Kyle	606996	2026	68	50	0.207	0.232	-0.025	0.31	0.342	-0.032	0.281	0.303	-0.022	5.4	3.63	1.77
+Brogdon, Connor	641401	2026	67	50	0.23	0.259	-0.029	0.525	0.515	0.01	0.341	0.346	-0.005	5.28	4.87	0.413
+Loáisiga, Jonathan	642528	2026	66	50	0.246	0.253	-0.007	0.344	0.404	-0.06	0.283	0.32	-0.037	3.31	4.09	-0.784
+Farris, Mitch	815083	2026	66	51	0.339	0.307	0.032	0.532	0.466	0.066	0.401	0.353	0.048	3.6	5.1	-1.5
+Hill, Tim	657612	2026	63	54	0.2	0.275	-0.075	0.25	0.38	-0.13	0.213	0.295	-0.082	1.04	3.43	-2.392
+García, Luis	472610	2026	61	51	0.37	0.354	0.016	0.611	0.582	0.029	0.455	0.431	0.024	10.5	8.35	2.15
