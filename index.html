@@ -762,6 +762,9 @@ function renderTable(){
         <td>${fmtB(p.babip,3)}${babipF}</td>
         <td style="font-weight:600;color:${kbColor};">${kbStr}</td>
         <td>${fmt(p.barrel,1,'%')}</td>
+        <td style="color:#555;">${(+p.woba)>0?(+p.woba).toFixed(3):'—'}</td>
+        <td style="color:#555;">${(+p.xwoba)>0?(+p.xwoba).toFixed(3):'—'}</td>
+        <td style="font-weight:600;">${(+p.woba)>0&&(+p.xwoba)>0?(((+p.woba)-(+p.xwoba))>=0?'+':'')+(((+p.woba)-(+p.xwoba)).toFixed(3)):'—'}</td> 
       </tr>`;
     }).join('')}</tbody>
   </table>`;
