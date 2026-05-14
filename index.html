@@ -717,9 +717,18 @@ async function fetchSlate(){
   try{
     // Fetch probable pitchers and odds in parallel
     fetchOdds(); // Non-blocking - odds load in background
-    // Fetch probable pitchers only - team stats are hardcoded
-    const schedRes = await fetch(`https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=${date}&hydrate=team,probablePitcher`);
-    if(!schedRes.ok) throw new Error('Schedule API error');
+    // Fetch probable pitchers - try direct first, then CORS proxy
+    let schedRes;
+    const mlbUrl = `https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=${date}&hydrate=team,probablePitcher`;
+    try {
+      schedRes = await fetch(mlbUrl);
+      if(!schedRes.ok) throw new Error('direct failed');
+    } catch(e) {
+      // Try CORS proxy
+      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(mlbUrl)}`;
+      schedRes = await fetch(proxyUrl);
+      if(!schedRes.ok) throw new Error('Schedule API error');
+    }
     const schedData=await schedRes.json();
     const dates=schedData.dates||[];
     if(!dates.length||!dates[0].games?.length){
