@@ -715,31 +715,9 @@ async function fetchSlate(){
   g('slateStatus').innerHTML='<span class="spinner"></span>Fetching probable starters & team stats...';
   g('slateContent').innerHTML='';
   try{
-    // Fetch probable pitchers and odds in parallel
-    fetchOdds(); // Non-blocking - odds load in background
-    // Fetch probable pitchers - try direct first, then CORS proxy
-    let schedRes;
-    const mlbUrl = `https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=${date}&hydrate=team,probablePitcher`;
-    // Try multiple CORS proxies
-    const proxies = [
-      mlbUrl,
-      `https://corsproxy.io/?${encodeURIComponent(mlbUrl)}`,
-      `https://api.allorigins.win/raw?url=${encodeURIComponent(mlbUrl)}`,
-      `https://proxy.cors.sh/${mlbUrl}`,
-    ];
-    let lastErr;
-    for(const url of proxies){
-      try {
-        schedRes = await fetch(url, {
-          headers: {
-            'Accept': 'application/json',
-            'Origin': 'https://www.mlb.com',
-          }
-        });
-        if(schedRes.ok) break;
-      } catch(e){ lastErr=e; }
-    }
-    if(!schedRes||!schedRes.ok) throw new Error('Could not reach MLB API — check your internet connection');
+    // Fetch probable pitchers
+    const schedRes = await fetch(`https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=${date}&hydrate=team,probablePitcher`);
+    if(!schedRes.ok) throw new Error('Could not reach MLB API — check your internet connection');
     const schedData=await schedRes.json();
     const dates=schedData.dates||[];
     if(!dates.length||!dates[0].games?.length){
@@ -944,20 +922,8 @@ function renderSlate(games){
     };
 
     const gameTime=new Date(game.gameDate).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
-    const gameOdds=getOddsForGame(homeName,awayName);
-    const parsedOdds=parseOdds(gameOdds,homeName,awayName);
-    const dkTotal=parsedOdds?.dk?.total;
-    const fdTotal=parsedOdds?.fd?.total;
-    const dkHomeML=parsedOdds?.dk?.homeML;
-    const fdHomeML=parsedOdds?.fd?.homeML;
-    const oddsRow=gameOdds?`
-      <div style="display:flex;gap:12px;margin-top:4px;font-size:11px;flex-wrap:wrap;">
-        ${dkTotal?`<span style="background:#f0f0ec;padding:2px 8px;border-radius:10px;">DK O/U: <strong>${dkTotal}</strong> (${formatML(parsedOdds.dk.overOdds)}/${formatML(parsedOdds.dk.underOdds)})</span>`:''}
-        ${fdTotal?`<span style="background:#f0f0ec;padding:2px 8px;border-radius:10px;">FD O/U: <strong>${fdTotal}</strong> (${formatML(parsedOdds.fd.overOdds)}/${formatML(parsedOdds.fd.underOdds)})</span>`:''}
-        ${dkHomeML?`<span style="background:#f0f0ec;padding:2px 8px;border-radius:10px;">ML: ${awayAbbr} ${formatML(parsedOdds.dk.awayML)} / ${homeAbbr} ${formatML(dkHomeML)}</span>`:''}
-      </div>`:'<div style="font-size:11px;color:#bbb;margin-top:3px;">Odds loading...</div>';
     return`<div class="game-card">
-      <div class="game-header">${awayName} @ ${homeName} · ${gameTime}${oddsRow}</div>
+      <div class="game-header">${awayName} @ ${homeName} · ${gameTime}</div>
       ${renderPitcher(ap,getTeamData(homeAbbr,homeName,homeId),awayAbbr,homeAbbr)}
       ${renderPitcher(hp,getTeamData(awayAbbr,awayName,awayId),homeAbbr,awayAbbr)}
     </div>`;
