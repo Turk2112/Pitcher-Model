@@ -720,15 +720,26 @@ async function fetchSlate(){
     // Fetch probable pitchers - try direct first, then CORS proxy
     let schedRes;
     const mlbUrl = `https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=${date}&hydrate=team,probablePitcher`;
-    try {
-      schedRes = await fetch(mlbUrl);
-      if(!schedRes.ok) throw new Error('direct failed');
-    } catch(e) {
-      // Try CORS proxy
-      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(mlbUrl)}`;
-      schedRes = await fetch(proxyUrl);
-      if(!schedRes.ok) throw new Error('Schedule API error');
+    // Try multiple CORS proxies
+    const proxies = [
+      mlbUrl,
+      `https://corsproxy.io/?${encodeURIComponent(mlbUrl)}`,
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(mlbUrl)}`,
+      `https://proxy.cors.sh/${mlbUrl}`,
+    ];
+    let lastErr;
+    for(const url of proxies){
+      try {
+        schedRes = await fetch(url, {
+          headers: {
+            'Accept': 'application/json',
+            'Origin': 'https://www.mlb.com',
+          }
+        });
+        if(schedRes.ok) break;
+      } catch(e){ lastErr=e; }
     }
+    if(!schedRes||!schedRes.ok) throw new Error('Could not reach MLB API — check your internet connection');
     const schedData=await schedRes.json();
     const dates=schedData.dates||[];
     if(!dates.length||!dates[0].games?.length){
