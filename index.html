@@ -156,11 +156,30 @@ tr:hover td { background: #fafaf8; }
 
     <div class="card">
       <div class="section-title" style="margin-bottom:10px;">Today's slate — matchup analysis</div>
-      <div class="date-row">
-        <input type="date" id="slateDate">
-        <button class="btn btn-primary btn-sm" onclick="fetchSlate()">Pull probable starters</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:10px;align-items:end;margin-bottom:12px;">
+        <div>
+          <div style="font-size:11px;color:#888;margin-bottom:4px;">Away team</div>
+          <select id="awayTeam" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:#fff;"><option value="">Select...</option></select>
+        </div>
+        <div>
+          <div style="font-size:11px;color:#888;margin-bottom:4px;">Away pitcher</div>
+          <input type="text" id="awayPitcher" placeholder="e.g. Chris Paddack" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;">
+        </div>
+        <div>
+          <div style="font-size:11px;color:#888;margin-bottom:4px;">Home team</div>
+          <select id="homeTeam" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:#fff;"><option value="">Select...</option></select>
+        </div>
+        <div>
+          <div style="font-size:11px;color:#888;margin-bottom:4px;">Home pitcher</div>
+          <input type="text" id="homePitcher" placeholder="e.g. Jose Soriano" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;">
+        </div>
+        <button class="btn btn-primary" onclick="addGame()" style="height:36px;white-space:nowrap;">+ Add game</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:1rem;align-items:center;">
+        <button class="btn btn-sm" onclick="clearGames()">Clear all</button>
         <span id="slateStatus" style="font-size:12px;color:#888;"></span>
       </div>
+      <div style="font-size:11px;color:#aaa;margin-bottom:1rem;">Enter today's matchups — pitcher names must match your uploaded CSV data exactly.</div>
       <div id="slateContent"></div>
     </div>
 
@@ -596,13 +615,55 @@ function showMain(sample=false){
   g('mainSection').style.display='block';
   g('resetBtn').style.display='inline-block';
   const today=new Date().toISOString().split('T')[0];
-  g('slateDate').value=today;
+  // Initialize team batting data
+  const TEAM_STATS_2026=[
+    {t:'LAD',ops:.863,obp:.364,slg:.499,bb:76,so:166,pa:735,hr:35},
+    {t:'ATL',ops:.803,obp:.344,slg:.459,bb:66,so:147,pa:767,hr:28},
+    {t:'HOU',ops:.787,obp:.353,slg:.434,bb:93,so:167,pa:826,hr:24},
+    {t:'WSH',ops:.749,obp:.337,slg:.412,bb:68,so:161,pa:791,hr:22},
+    {t:'LAA',ops:.752,obp:.338,slg:.414,bb:98,so:202,pa:825,hr:34},
+    {t:'CHC',ops:.748,obp:.346,slg:.402,bb:89,so:166,pa:757,hr:22},
+    {t:'PIT',ops:.745,obp:.346,slg:.399,bb:85,so:179,pa:792,hr:22},
+    {t:'MIL',ops:.716,obp:.340,slg:.376,bb:95,so:163,pa:741,hr:18},
+    {t:'MIN',ops:.720,obp:.332,slg:.388,bb:87,so:176,pa:759,hr:26},
+    {t:'TB',ops:.719,obp:.335,slg:.384,bb:66,so:136,pa:747,hr:16},
+    {t:'TEX',ops:.714,obp:.315,slg:.399,bb:71,so:190,pa:758,hr:23},
+    {t:'BAL',ops:.709,obp:.328,slg:.381,bb:83,so:182,pa:757,hr:18},
+    {t:'STL',ops:.706,obp:.329,slg:.377,bb:82,so:150,pa:737,hr:22},
+    {t:'CLE',ops:.697,obp:.317,slg:.380,bb:80,so:160,pa:777,hr:21},
+    {t:'NYY',ops:.696,obp:.313,slg:.383,bb:92,so:188,pa:746,hr:25},
+    {t:'ARI',ops:.691,obp:.293,slg:.398,bb:48,so:166,pa:727,hr:16},
+    {t:'DET',ops:.693,obp:.322,slg:.371,bb:73,so:165,pa:742,hr:14},
+    {t:'SD',ops:.689,obp:.309,slg:.380,bb:70,so:150,pa:744,hr:17},
+    {t:'PHI',ops:.682,obp:.308,slg:.374,bb:62,so:162,pa:718,hr:20},
+    {t:'TOR',ops:.680,obp:.308,slg:.372,bb:59,so:132,pa:717,hr:17},
+    {t:'MIA',ops:.733,obp:.331,slg:.402,bb:66,so:160,pa:754,hr:15},
+    {t:'ATH',ops:.663,obp:.307,slg:.356,bb:72,so:192,pa:746,hr:17},
+    {t:'OAK',ops:.663,obp:.307,slg:.356,bb:72,so:192,pa:746,hr:17},
+    {t:'BOS',ops:.664,obp:.317,slg:.347,bb:64,so:169,pa:719,hr:12},
+    {t:'COL',ops:.674,obp:.303,slg:.371,bb:60,so:204,pa:745,hr:20},
+    {t:'SF',ops:.659,obp:.293,slg:.366,bb:41,so:150,pa:720,hr:12},
+    {t:'SEA',ops:.646,obp:.317,slg:.329,bb:93,so:199,pa:793,hr:17},
+    {t:'KC',ops:.642,obp:.301,slg:.341,bb:69,so:167,pa:725,hr:16},
+    {t:'CWS',ops:.625,obp:.295,slg:.330,bb:74,so:190,pa:735,hr:17},
+    {t:'NYM',ops:.632,obp:.293,slg:.339,bb:60,so:162,pa:754,hr:14},
+    {t:'CIN',ops:.620,obp:.293,slg:.327,bb:84,so:184,pa:738,hr:21},
+  ];
+  TEAM_STATS_2026.forEach(r=>{
+    const bbpct=(r.bb/r.pa)*100,kpct=(r.so/r.pa)*100,hrRate=(r.hr/(r.pa*0.87))*100;
+    const entry={team:r.t,ops:r.ops,obp:r.obp,slg:r.slg,bbpct,kpct,hrRate,hh:r.ops*40,barrel:r.slg*15};
+    teamBatData[r.t]=entry;
+  });
+  const ABBR_ALIASES={'AZ':'ARI','KC':'KCR','SD':'SDP','SF':'SFG','TB':'TBR','WSH':'WSN','CWS':'CHW','WAS':'WSN'};
+  Object.entries(ABBR_ALIASES).forEach(([api,our])=>{if(teamBatData[our])teamBatData[api]=teamBatData[our];if(teamBatData[api])teamBatData[our]=teamBatData[api];});
+  populateTeamDropdowns();
+  g('summaryCards').querySelector&&g('summaryCards').querySelector('.scard:last-child .scard-val')&&(g('summaryCards').querySelector('.scard:last-child .scard-val').textContent=Object.keys(teamBatData).filter(k=>k.length<=3).length);
   const has3=Object.keys(teamBatData).length>0;
   if(!sample){
     const sb=g('statusBar');
     sb.style.display='block';
     sb.className='status-bar status-ok';
-    sb.textContent=`✓ ${allPitchers.length} pitchers loaded — click "Pull probable starters" to fetch today's slate and team batting stats automatically`;
+    sb.textContent=`✓ ${allPitchers.length} pitchers loaded — enter today's matchups below`;
   }
   renderSummary();
   renderTable();
@@ -617,6 +678,7 @@ function resetApp(){
   g('runBtn').style.display='none';
   [1,2].forEach(n=>{g('loaded'+n).style.display='none';g('box'+n).classList.remove('loaded');g('csv'+n).value='';});
   g('slateContent').innerHTML='';
+  manualGames=[];
 }
 
 function applyFilters(){
@@ -709,117 +771,104 @@ function formatML(odds){
   return odds>0?`+${odds}`:String(odds);
 }
 
-async function fetchSlate(){
-  const date=g('slateDate').value;
-  if(!date){g('slateStatus').textContent='Pick a date first';return;}
-  g('slateStatus').innerHTML='<span class="spinner"></span>Fetching probable starters & team stats...';
+// Manual game entry
+let manualGames = [];
+
+const ALL_TEAMS = [
+  {abbr:'ARI',name:'Arizona Diamondbacks'},{abbr:'ATL',name:'Atlanta Braves'},
+  {abbr:'BAL',name:'Baltimore Orioles'},{abbr:'BOS',name:'Boston Red Sox'},
+  {abbr:'CHC',name:'Chicago Cubs'},{abbr:'CWS',name:'Chicago White Sox'},
+  {abbr:'CIN',name:'Cincinnati Reds'},{abbr:'CLE',name:'Cleveland Guardians'},
+  {abbr:'COL',name:'Colorado Rockies'},{abbr:'DET',name:'Detroit Tigers'},
+  {abbr:'HOU',name:'Houston Astros'},{abbr:'KC',name:'Kansas City Royals'},
+  {abbr:'LAA',name:'Los Angeles Angels'},{abbr:'LAD',name:'Los Angeles Dodgers'},
+  {abbr:'MIA',name:'Miami Marlins'},{abbr:'MIL',name:'Milwaukee Brewers'},
+  {abbr:'MIN',name:'Minnesota Twins'},{abbr:'NYM',name:'New York Mets'},
+  {abbr:'NYY',name:'New York Yankees'},{abbr:'ATH',name:'Oakland Athletics'},
+  {abbr:'PHI',name:'Philadelphia Phillies'},{abbr:'PIT',name:'Pittsburgh Pirates'},
+  {abbr:'SD',name:'San Diego Padres'},{abbr:'SF',name:'San Francisco Giants'},
+  {abbr:'SEA',name:'Seattle Mariners'},{abbr:'STL',name:'St. Louis Cardinals'},
+  {abbr:'TB',name:'Tampa Bay Rays'},{abbr:'TEX',name:'Texas Rangers'},
+  {abbr:'TOR',name:'Toronto Blue Jays'},{abbr:'WSH',name:'Washington Nationals'},
+];
+
+function populateTeamDropdowns(){
+  const opts = ALL_TEAMS.map(t=>`<option value="${t.abbr}">${t.name} (${t.abbr})</option>`).join('');
+  const away = g('awayTeam');
+  const home = g('homeTeam');
+  if(away) away.innerHTML = '<option value="">Select away team...</option>' + opts;
+  if(home) home.innerHTML = '<option value="">Select home team...</option>' + opts;
+}
+
+function addGame(){
+  const awayAbbr = g('awayTeam')?.value;
+  const homeAbbr = g('homeTeam')?.value;
+  const awayPitcher = g('awayPitcher')?.value?.trim();
+  const homePitcher = g('homePitcher')?.value?.trim();
+  if(!awayAbbr||!homeAbbr){g('slateStatus').textContent='Please select both teams';return;}
+  if(!awayPitcher&&!homePitcher){g('slateStatus').textContent='Enter at least one pitcher name';return;}
+  if(awayAbbr===homeAbbr){g('slateStatus').textContent='Away and home teams must be different';return;}
+  const awayTeam = ALL_TEAMS.find(t=>t.abbr===awayAbbr);
+  const homeTeam = ALL_TEAMS.find(t=>t.abbr===homeAbbr);
+  manualGames.push({
+    awayAbbr, homeAbbr,
+    awayName: awayTeam?.name||awayAbbr,
+    homeName: homeTeam?.name||homeAbbr,
+    awayPitcher, homePitcher
+  });
+  // Clear inputs
+  g('awayTeam').value=''; g('homeTeam').value='';
+  g('awayPitcher').value=''; g('homePitcher').value='';
+  g('slateStatus').textContent=`${manualGames.length} game${manualGames.length>1?'s':''} added`;
+  renderManualSlate();
+}
+
+function clearGames(){
+  manualGames=[];
   g('slateContent').innerHTML='';
-  try{
-    // Fetch probable pitchers
-    const schedRes = await fetch(`https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=${date}&hydrate=team,probablePitcher`);
-    if(!schedRes.ok) throw new Error('Could not reach MLB API — check your internet connection');
-    const schedData=await schedRes.json();
-    const dates=schedData.dates||[];
-    if(!dates.length||!dates[0].games?.length){
-      g('slateStatus').textContent='No games found for this date';
-      return;
-    }
+  g('slateStatus').textContent='';
+}
 
-    // Hardcoded 2026 team batting stats (updated May 8 2026 from Fox Sports)
-    // BB% and K% calculated from PA totals. OPS used as primary offense quality signal.
-    const TEAM_STATS_2026 = [
-      {t:'LAD',ops:.863,obp:.364,slg:.499,bb:76,so:166,pa:735,hr:35},
-      {t:'ATL',ops:.803,obp:.344,slg:.459,bb:66,so:147,pa:767,hr:28},
-      {t:'HOU',ops:.787,obp:.353,slg:.434,bb:93,so:167,pa:826,hr:24},
-      {t:'WSH',ops:.749,obp:.337,slg:.412,bb:68,so:161,pa:791,hr:22},
-      {t:'LAA',ops:.752,obp:.338,slg:.414,bb:98,so:202,pa:825,hr:34},
-      {t:'CHC',ops:.748,obp:.346,slg:.402,bb:89,so:166,pa:757,hr:22},
-      {t:'PIT',ops:.745,obp:.346,slg:.399,bb:85,so:179,pa:792,hr:22},
-      {t:'MIL',ops:.716,obp:.340,slg:.376,bb:95,so:163,pa:741,hr:18},
-      {t:'MIN',ops:.720,obp:.332,slg:.388,bb:87,so:176,pa:759,hr:26},
-      {t:'TB', ops:.719,obp:.335,slg:.384,bb:66,so:136,pa:747,hr:16},
-      {t:'TEX',ops:.714,obp:.315,slg:.399,bb:71,so:190,pa:758,hr:23},
-      {t:'BAL',ops:.709,obp:.328,slg:.381,bb:83,so:182,pa:757,hr:18},
-      {t:'STL',ops:.706,obp:.329,slg:.377,bb:82,so:150,pa:737,hr:22},
-      {t:'CLE',ops:.697,obp:.317,slg:.380,bb:80,so:160,pa:777,hr:21},
-      {t:'NYY',ops:.696,obp:.313,slg:.383,bb:92,so:188,pa:746,hr:25},
-      {t:'ARI',ops:.691,obp:.293,slg:.398,bb:48,so:166,pa:727,hr:16},
-      {t:'DET',ops:.693,obp:.322,slg:.371,bb:73,so:165,pa:742,hr:14},
-      {t:'SD', ops:.689,obp:.309,slg:.380,bb:70,so:150,pa:744,hr:17},
-      {t:'PHI',ops:.682,obp:.308,slg:.374,bb:62,so:162,pa:718,hr:20},
-      {t:'TOR',ops:.680,obp:.308,slg:.372,bb:59,so:132,pa:717,hr:17},
-      {t:'MIA',ops:.733,obp:.331,slg:.402,bb:66,so:160,pa:754,hr:15},
-      {t:'ATH',ops:.663,obp:.307,slg:.356,bb:72,so:192,pa:746,hr:17},
-      {t:'OAK',ops:.663,obp:.307,slg:.356,bb:72,so:192,pa:746,hr:17},
-      {t:'BOS',ops:.664,obp:.317,slg:.347,bb:64,so:169,pa:719,hr:12},
-      {t:'COL',ops:.674,obp:.303,slg:.371,bb:60,so:204,pa:745,hr:20},
-      {t:'SF', ops:.659,obp:.293,slg:.366,bb:41,so:150,pa:720,hr:12},
-      {t:'SEA',ops:.646,obp:.317,slg:.329,bb:93,so:199,pa:793,hr:17},
-      {t:'KC', ops:.642,obp:.301,slg:.341,bb:69,so:167,pa:725,hr:16},
-      {t:'CWS',ops:.625,obp:.295,slg:.330,bb:74,so:190,pa:735,hr:17},
-      {t:'NYM',ops:.632,obp:.293,slg:.339,bb:60,so:162,pa:754,hr:14},
-      {t:'CIN',ops:.620,obp:.293,slg:.327,bb:84,so:184,pa:738,hr:21},
-    ];
-    TEAM_STATS_2026.forEach(r=>{
-      const bbpct=(r.bb/r.pa)*100;
-      const kpct=(r.so/r.pa)*100;
-      const hrRate=(r.hr/(r.pa*0.87))*100; // approx AB from PA
-      const entry={team:r.t,ops:r.ops,obp:r.obp,slg:r.slg,bbpct,kpct,hrRate,hh:r.ops*40,barrel:r.slg*15};
-      teamBatData[r.t]=entry;
-    });
-    // 2026 Park Factors (100 = neutral, >100 = hitter friendly, <100 = pitcher friendly)
-    // Source: Baseball Savant / FanGraphs 3-year rolling, adjusted for 2026
-    const PARK_FACTORS = {
-      'COL': {factor: 115, name: 'Coors Field'},        // Most extreme hitter park
-      'CIN': {factor: 109, name: 'Great American BP'},
-      'BOS': {factor: 107, name: 'Fenway Park'},
-      'PHI': {factor: 106, name: 'Citizens Bank Park'},
-      'TEX': {factor: 105, name: 'Globe Life Field'},
-      'MIL': {factor: 104, name: 'American Family Field'},
-      'NYY': {factor: 104, name: 'Yankee Stadium'},
-      'HOU': {factor: 103, name: 'Minute Maid Park'},
-      'KC': {factor: 103, name: 'Kauffman Stadium'},     // Fences moved in 2026
-      'KCR': {factor: 103, name: 'Kauffman Stadium'},
-      'CHC': {factor: 102, name: 'Wrigley Field'},
-      'LAA': {factor: 101, name: 'Angel Stadium'},
-      'ATL': {factor: 100, name: 'Truist Park'},
-      'BAL': {factor: 100, name: 'Camden Yards'},
-      'DET': {factor: 100, name: 'Comerica Park'},
-      'MIN': {factor: 100, name: 'Target Field'},
-      'STL': {factor: 99, name: 'Busch Stadium'},
-      'WSN': {factor: 99, name: 'Nationals Park'},
-      'WSH': {factor: 99, name: 'Nationals Park'},
-      'ARI': {factor: 98, name: 'Chase Field'},
-      'AZ':  {factor: 98, name: 'Chase Field'},
-      'CLE': {factor: 98, name: 'Progressive Field'},
-      'PIT': {factor: 98, name: 'PNC Park'},
-      'NYM': {factor: 97, name: 'Citi Field'},
-      'TOR': {factor: 97, name: 'Rogers Centre'},
-      'MIA': {factor: 96, name: 'loanDepot park'},
-      'CWS': {factor: 96, name: 'Rate Field'},
-      'CHW': {factor: 96, name: 'Rate Field'},
-      'TB':  {factor: 96, name: 'Tropicana Field'},
-      'TBR': {factor: 96, name: 'Tropicana Field'},
-      'LAD': {factor: 95, name: 'Dodger Stadium'},
-      'SEA': {factor: 95, name: 'T-Mobile Park'},
-      'SF':  {factor: 94, name: 'Oracle Park'},
-      'SFG': {factor: 94, name: 'Oracle Park'},
-      'SD':  {factor: 93, name: 'Petco Park'},
-      'SDP': {factor: 93, name: 'Petco Park'},
-      'ATH': {factor: 100, name: 'Sutter Health Park'}, // New park, using neutral
-      'OAK': {factor: 100, name: 'Sutter Health Park'},
-    };
+function renderManualSlate(){
+  if(!manualGames.length){g('slateContent').innerHTML='';return;}
+  const cards = manualGames.map((game,idx)=>{
+    const homeAbbr = game.homeAbbr;
+    const awayAbbr = game.awayAbbr;
+    const homeOppData = teamBatData[awayAbbr]||teamBatData[awayAbbr.toLowerCase()]||null;
+    const awayOppData = teamBatData[homeAbbr]||teamBatData[homeAbbr.toLowerCase()]||null;
+    const awayCard = game.awayPitcher ? renderPitcherCard(game.awayPitcher, awayOppData, awayAbbr, homeAbbr) : '';
+    const homeCard = game.homePitcher ? renderPitcherCard(game.homePitcher, homeOppData, homeAbbr, awayAbbr) : '';
+    return `<div class="game-card">
+      <div class="game-header" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>${game.awayName} @ ${game.homeName}</span>
+        <button onclick="removeGame(${idx})" style="background:none;border:none;cursor:pointer;color:#bbb;font-size:16px;">×</button>
+      </div>
+      ${awayCard||'<div class="pitcher-row"><div style="color:#bbb;font-size:12px;font-style:italic;">No away pitcher entered</div></div>'}
+      ${homeCard||'<div class="pitcher-row"><div style="color:#bbb;font-size:12px;font-style:italic;">No home pitcher entered</div></div>'}
+    </div>`;
+  }).join('');
+  g('slateContent').innerHTML=`<div class="slate-grid">${cards}</div>`;
+}
 
-    const ABBR_ALIASES={'AZ':'ARI','KC':'KCR','SD':'SDP','SF':'SFG','TB':'TBR','WSH':'WSN','CWS':'CHW','WAS':'WSN'};
-    Object.entries(ABBR_ALIASES).forEach(([api,our])=>{ if(teamBatData[our]) teamBatData[api]=teamBatData[our]; if(teamBatData[api]) teamBatData[our]=teamBatData[api]; });
-    const teamCount=Object.keys(teamBatData).filter(k=>k.length<=3).length;
-    g('slateStatus').textContent=`${dates[0].games.length} games · ${teamCount} teams loaded`;
+function removeGame(idx){
+  manualGames.splice(idx,1);
+  g('slateStatus').textContent=manualGames.length?`${manualGames.length} game${manualGames.length>1?'s':''} added`:'';
+  renderManualSlate();
+}
 
-    renderSlate(dates[0].games);
-  }catch(e){
-    g('slateStatus').textContent='Could not reach MLB API — check your internet connection';
-    console.error(e);
+function renderPitcherCard(fullName, oppData, pitcherTeamAbbr, oppAbbr){
+  const pData = pitcherData[normalName(fullName)];
+  if(!pData){
+    return `<div class="pitcher-row">
+      <div class="pitcher-info">
+        <div class="pitcher-name">${fullName}</div>
+        <div class="pitcher-team">${pitcherTeamAbbr} vs ${oppAbbr}</div>
+        <div class="pitcher-opp no-data" style="font-size:11px;color:#bbb;">Not found in pitcher data — check spelling</div>
+      </div>
+      <div class="score-block"><span class="badge neutral-badge">No data</span></div>
+    </div>`;
   }
+  return renderPitcher({fullName, name:fullName}, oppData, pitcherTeamAbbr, oppAbbr);
 }
 
 function renderSlate(games){
@@ -841,7 +890,7 @@ function renderSlate(games){
 
     const renderPitcher=(pitcher,oppData,pitcherTeamAbbr,oppAbbr)=>{
       if(!pitcher) return`<div class="pitcher-row"><div class="pitcher-info"><div class="pitcher-name" style="color:#bbb;">TBD</div><div class="pitcher-team">${pitcherTeamAbbr}</div></div></div>`;
-      const fullName=pitcher.fullName||'';
+      const fullName=pitcher.fullName||pitcher.name||'';
       const pData=pitcherData[normalName(fullName)];
       if(!pData){
         return`<div class="pitcher-row">
