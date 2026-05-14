@@ -643,45 +643,33 @@ function renderSummary(){
 }
 
 // Odds API configuration
-const ODDS_API_KEY = 'e32c8203928e52e12c0468008cf6cd7386a8e7574dd79cee39b1665eb046d60a';
+const ODDS_API_KEY = '1eac4074a14f42b8931651ba4e86a928';
 let oddsData = {}; // Keyed by home_team+away_team
 
 async function fetchOdds(){
+  if(!ODDS_API_KEY||ODDS_API_KEY==='YOUR_API_KEY') return;
   try {
-    // Try odds-api.io
-    const url = `https://api.odds-api.io/v3/events?apiKey=${ODDS_API_KEY}&sport=mlb`;
+    // Use the-odds-api.com
+    const url = `https://api.the-odds-api.com/v4/sports/baseball_mlb/odds?regions=us&markets=h2h,totals&oddsFormat=american&bookmakers=draftkings,fanduel&apiKey=${ODDS_API_KEY}`;
     const res = await fetch(url);
-    if(!res.ok) throw new Error('odds-api failed');
-    const events = await res.json();
-    if(!Array.isArray(events)) throw new Error('unexpected format');
-    
-    // For each event fetch odds
-    for(const ev of events.slice(0,16)){
-      try {
-        const oRes = await fetch(`https://api.odds-api.io/v3/odds?apiKey=${ODDS_API_KEY}&eventId=${ev.id}&bookmakers=DraftKings,FanDuel`);
-        if(!oRes.ok) continue;
-        const o = await oRes.json();
-        const key = (ev.home_team+'|'+ev.away_team).toLowerCase();
-        oddsData[key] = {home:ev.home_team, away:ev.away_team, bookmakers:o.bookmakers||[]};
-      } catch(e){}
+    if(!res.ok) {
+      console.log('Odds API error:', res.status, res.statusText);
+      return;
     }
+    const games = await res.json();
+    if(!Array.isArray(games)) { console.log('Unexpected odds format'); return; }
+    games.forEach(g=>{
+      const key = (g.home_team+'|'+g.away_team).toLowerCase();
+      oddsData[key] = g;
+    });
     console.log('Odds loaded for', Object.keys(oddsData).length, 'games');
-  } catch(e) {
-    console.log('Odds API unavailable:', e.message);
-    // Try the-odds-api.com as fallback
-    try {
-      const url2 = `https://api.the-odds-api.com/v4/sports/baseball_mlb/odds?regions=us&markets=h2h,totals&oddsFormat=american&bookmakers=draftkings,fanduel&apiKey=${ODDS_API_KEY}`;
-      const res2 = await fetch(url2);
-      if(!res2.ok) throw new Error('fallback failed');
-      const games = await res2.json();
-      games.forEach(g=>{
-        const key = (g.home_team+'|'+g.away_team).toLowerCase();
-        oddsData[key] = g;
-      });
-      console.log('Fallback odds loaded for', Object.keys(oddsData).length, 'games');
-    } catch(e2){
-      console.log('All odds APIs failed:', e2.message);
+    // Re-render slate with odds if already loaded
+    if(document.getElementById('slateContent').children.length>0) {
+      const dateEl = document.getElementById('slateDate');
+      if(dateEl&&dateEl.value) fetchSlate();
     }
+  } catch(e) {
+    console.log('Odds fetch failed:', e.message);
   }
 }
 
@@ -694,31 +682,25 @@ function getOddsForGame(homeTeam, awayTeam){
 function parseOdds(gameOdds, homeTeam, awayTeam){
   if(!gameOdds) return null;
   const result = {dk:{}, fd:{}};
-  
-  // Handle odds-api.io format
-  if(gameOdds.bookmakers){
-    gameOdds.bookmakers.forEach(bk=>{
-      const target = bk.name==='DraftKings'?result.dk:bk.name==='FanDuel'?result.fd:null;
-      if(!target) return;
-      (bk.markets||[]).forEach(m=>{
-        if(m.type==='moneyline'||m.key==='h2h'){
-          const outcomes = m.outcomes||[];
-          outcomes.forEach(o=>{
-            const price = o.price||o.odds;
-            if(o.name===homeTeam||o.participant===homeTeam) target.homeML=price;
-            else target.awayML=price;
-          });
-        }
-        if(m.type==='total'||m.key==='totals'){
-          const outcomes = m.outcomes||[];
-          outcomes.forEach(o=>{
-            if((o.name||o.type)==='Over') { target.total=o.point||o.line; target.overOdds=o.price||o.odds; }
-            if((o.name||o.type)==='Under') target.underOdds=o.price||o.odds;
-          });
-        }
-      });
+  const bks = gameOdds.bookmakers||[];
+  bks.forEach(bk=>{
+    const target = bk.key==='draftkings'?result.dk:bk.key==='fanduel'?result.fd:null;
+    if(!target) return;
+    (bk.markets||[]).forEach(m=>{
+      if(m.key==='h2h'){
+        (m.outcomes||[]).forEach(o=>{
+          if(o.name===homeTeam) target.homeML=o.price;
+          else target.awayML=o.price;
+        });
+      }
+      if(m.key==='totals'){
+        (m.outcomes||[]).forEach(o=>{
+          if(o.name==='Over'){target.total=o.point;target.overOdds=o.price;}
+          if(o.name==='Under')target.underOdds=o.price;
+        });
+      }
     });
-  }
+  });
   return result;
 }
 
