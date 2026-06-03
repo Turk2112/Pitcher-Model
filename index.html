@@ -805,6 +805,60 @@ function addGame(){
   const homeAbbr = g('homeTeam')?.value;
   const awayPitcher = g('awayPitcher')?.value?.trim();
   const homePitcher = g('homePitcher')?.value?.trim();
+  
+  console.log('addGame called:', {awayAbbr, homeAbbr, awayPitcher, homePitcher});
+  
+  if(!awayAbbr||!homeAbbr){
+    alert('Please select both teams. Away: "'+awayAbbr+'" Home: "'+homeAbbr+'"');
+    return;
+  }
+  if(!awayPitcher&&!homePitcher){
+    alert('Enter at least one pitcher name');
+    return;
+  }
+  if(awayAbbr===homeAbbr){
+    alert('Away and home teams must be different');
+    return;
+  }
+  const awayTeam = ALL_TEAMS.find(t=>t.abbr===awayAbbr);
+  const homeTeam = ALL_TEAMS.find(t=>t.abbr===homeAbbr);
+  manualGames.push({
+    awayAbbr, homeAbbr,
+    awayName: awayTeam?.name||awayAbbr,
+    homeName: homeTeam?.name||homeAbbr,
+    awayPitcher, homePitcher
+  });
+  g('awayTeam').value=''; g('homeTeam').value='';
+  g('awayPitcher').value=''; g('homePitcher').value='';
+  g('slateStatus').textContent=`${manualGames.length} game${manualGames.length>1?'s':''} added`;
+  renderManualSlate();
+}
+
+github.com/turk2112/Pitcher-Model
+Click index.html
+Click the pencil icon (Edit) top right
+Find the addGame() function and replace it with the debug version
+Scroll down and hit Commit changes
+
+The site will update in about 30 seconds, then try adding a game again and tell me what the alert popup says.You said: What line is this in?What line is this in?1:33 PMClaude responded: The addGame() function starts at line 371 in your code:The addGame() function starts at line 371 in your code:
+function addGame(){
+In the GitHub editor you can press Ctrl+G (or Cmd+G on Mac) to jump directly to a line number.You said: This is what I see at line 371This is what I see at line 3711:33 PMClaude responded: What do you see there?What do you see there? It looks like your message may have gotten cut off — can you paste what's on line 371?You said: const opsBonus=Math.const opsBonus=Math.round((opp.ops-0.720)*50);1:33 PMClaude responded: That's inside oppAdjustment(), not addGame().That's inside oppAdjustment(), not addGame(). The file you pasted here and what's live on GitHub must be out of sync.
+Use Ctrl+F in the GitHub editor and search for:
+function addGame()
+That'll jump you right to it regardless of line number. Tell me what line it lands on and we'll make the edit there.You said: 8038031:34 PMClaude responded: Perfect.Perfect. Go to line 803, and replace the entire addGame() function (from function addGame(){ down to the closing }) with the debug version I posted above.
+The easiest way in the GitHub editor:
+
+Ctrl+G → type 803 → Enter
+Click at the start of function addGame(){
+Select all the way down to the closing } of that function
+Paste the replacement code
+Commit changes
+
+The function ends around line 825 or so — you'll know you've selected the right block when you see the renderManualSlate() call just before the closing }.Want to be notified when Claude responds?Notify
+  const awayAbbr = g('awayTeam')?.value;
+  const homeAbbr = g('homeTeam')?.value;
+  const awayPitcher = g('awayPitcher')?.value?.trim();
+  const homePitcher = g('homePitcher')?.value?.trim();
   if(!awayAbbr||!homeAbbr){g('slateStatus').textContent='Please select both teams';return;}
   if(!awayPitcher&&!homePitcher){g('slateStatus').textContent='Enter at least one pitcher name';return;}
   if(awayAbbr===homeAbbr){g('slateStatus').textContent='Away and home teams must be different';return;}
