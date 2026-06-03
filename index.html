@@ -911,7 +911,19 @@ function removeGame(idx){
 }
 
 function renderPitcherCard(fullName, oppData, pitcherTeamAbbr, oppAbbr){
-  return renderPitcher({fullName, name:fullName}, oppData, pitcherTeamAbbr, oppAbbr);
+  try {
+    return renderPitcher({fullName, name:fullName}, oppData, pitcherTeamAbbr, oppAbbr);
+  } catch(e) {
+    console.error('renderPitcher error for '+fullName+':', e);
+    return `<div class="pitcher-row">
+      <div class="pitcher-info">
+        <div class="pitcher-name">${fullName}</div>
+        <div class="pitcher-team">${pitcherTeamAbbr} vs ${oppAbbr}</div>
+        <div class="pitcher-opp no-data">Render error: ${e.message}</div>
+      </div>
+      <div class="score-block"><span class="badge neutral-badge">Error</span></div>
+    </div>`;
+  }
 }
 
 function renderPitcher(pitcher,oppData,pitcherTeamAbbr,oppAbbr){
