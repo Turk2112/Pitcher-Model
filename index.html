@@ -598,7 +598,7 @@ function kPropAnalysis(pData, oppData, parkFactor){
   var total=overScore+underScore;
   var confidence=total>0?Math.round(Math.max(overScore,underScore)/total*100):50;
   var lean=overScore>underScore?'OVER':underScore>overScore?'UNDER':'NEUTRAL';
-  var projKs=((pData.kpct/100)*27).toFixed(1);
+  var projKs=((pData.kpct/100)*24).toFixed(1);
 
   return{lean:lean,confidence:confidence,overScore:overScore,underScore:underScore,factors:factors,projKs:projKs};
 }
