@@ -790,7 +790,7 @@ function renderManualSlate(){
     var awayOppData=teamBatData[game.homeAbbr]||null;
     var homeOppData=teamBatData[game.awayAbbr]||null;
     var awayCard=game.awayPitcher?renderPitcherCard(game.awayPitcher,awayOppData,game.awayAbbr,game.homeAbbr):'';
-    var homeCard=game.homePitcher?renderPitcherCard(game.homePitcher,homeOppData,game.homeAbbr,game.awayAbbr):'';
+   var homeCard=game.homePitcher?renderPitcherCard(game.homePitcher,homeOppData,game.homeAbbr,game.homeAbbr):'';
     return '<div class="game-card">'
       +'<div class="game-header" style="display:flex;justify-content:space-between;align-items:center;">'
       +'<span>'+game.awayName+' @ '+game.homeName+'</span>'
