@@ -313,6 +313,7 @@ tr:hover td{background:#fafaf8;}
           <div class="form-group">
             <label>Result</label>
             <select id="tResult">
+              <option value="Pending">Pending</option>
               <option value="W">Win</option>
               <option value="L">Loss</option>
               <option value="P">Push</option>
@@ -695,26 +696,45 @@ function generatePlays(){
     var homeOppData=teamBatData[game.awayAbbr]||null;
     var matchup=game.awayName+' @ '+game.homeName;
 
-    // Evaluate each pitcher
-    [{name:game.awayPitcher,teamAbbr:game.awayAbbr,oppData:awayOppData,oppAbbr:game.homeAbbr},
-     {name:game.homePitcher,teamAbbr:game.homeAbbr,oppData:homeOppData,oppAbbr:game.homeAbbr}].forEach(function(entry){
-      if(!entry.name) return;
+    // Score both pitchers first so we can compare
+    var entries=[
+      {name:game.awayPitcher,teamAbbr:game.awayAbbr,oppData:awayOppData,oppAbbr:game.homeAbbr},
+      {name:game.homePitcher,teamAbbr:game.homeAbbr,oppData:homeOppData,oppAbbr:game.homeAbbr}
+    ];
+    var scoredEntries=entries.map(function(entry){
+      if(!entry.name) return null;
       var pData=pitcherData[normalName(entry.name)];
-      if(!pData) return;
+      if(!pData) return null;
       var s=scorePitcher(pData);
       var opp=oppAdjustment(pData,entry.oppData);
       var pk=parkAdjustment(entry.oppAbbr,pData.type);
       var baseNet=pData.type==='fade'?s.fadeScore-s.buyScore:pData.type==='buy'?s.buyScore-s.fadeScore:0;
       var finalScore=baseNet+opp.adj+pk.adj;
+      return{entry:entry,pData:pData,pk:pk,finalScore:finalScore};
+    }).filter(Boolean);
+
+    // Check if both pitchers are fades — if so only keep the stronger one
+    var bothFades=scoredEntries.length===2&&scoredEntries[0].pData.type==='fade'&&scoredEntries[1].pData.type==='fade';
+
+    scoredEntries.forEach(function(scored,idx){
+      var entry=scored.entry,pData=scored.pData,pk=scored.pk,finalScore=scored.finalScore;
 
       if(pData.type==='fade'||pData.type==='buy'){
+        // If both are fades, skip the weaker one
+        if(bothFades&&pData.type==='fade'){
+          var other=scoredEntries[idx===0?1:0];
+          if(other&&finalScore<other.finalScore) return; // skip weaker fade
+          // If tied, skip home pitcher (arbitrary tiebreak)
+          if(other&&finalScore===other.finalScore&&idx===1) return;
+        }
         var strength=finalScore>=30?'strong':finalScore>=20?'play':finalScore>=10?'mild':'pass';
         if(strength!=='pass'){
+          var note=bothFades&&pData.type==='fade'?' (stronger fade — both pitchers flagged)':'';
           generatedPlays.push({
             id:'fade_'+normalName(entry.name)+'_'+Date.now(),
             type:'Fade',matchup:matchup,
             desc:(pData.type==='fade'?'Fade ':'Back ')+entry.name,
-            detail:'Score '+( finalScore>0?'+':'')+finalScore+' · '+pk.label,
+            detail:'Score '+(finalScore>0?'+':'')+finalScore+' · '+pk.label+note,
             strength:strength,score:finalScore,
             logData:{desc:(pData.type==='fade'?'Fade ':'Back ')+entry.name+' ('+matchup+')',type:'Fade',odds:'-110'}
           });
@@ -845,11 +865,19 @@ function logEntry(){
   if(isNaN(amt)||amt<=0){alert('Enter a valid amount');return;}
   if(!odds){alert('Enter odds (e.g. -110)');return;}
   var win=toWin(amt,odds);
-  var pl=pnl(amt,odds,result);
+  var pl=result==='Pending'?0:pnl(amt,odds,result);
   trackerEntries.unshift({id:Date.now(),date:date,desc:desc,type:type,amt:amt,odds:odds,win:parseFloat(win.toFixed(2)),result:result,pl:parseFloat(pl.toFixed(2))});
   saveTracker();
   g('tDesc').value='';g('tAmt').value='';g('tOdds').value='';
   renderTracker();
+}
+
+function gradeEntry(id,result){
+  var entry=trackerEntries.find(function(e){return e.id===id;});
+  if(!entry) return;
+  entry.result=result;
+  entry.pl=parseFloat(pnl(entry.amt,entry.odds,result).toFixed(2));
+  saveTracker();renderTracker();
 }
 
 function deleteEntry(id){
@@ -866,19 +894,27 @@ function renderTracker(){
   var body=g('trackerBody');if(!body) return;
   if(!trackerEntries.length){body.innerHTML='<tr><td colspan="9" style="text-align:center;color:#bbb;padding:2rem;font-style:italic;">No results logged yet.</td></tr>';renderTrackerSummary();return;}
   body.innerHTML=trackerEntries.map(function(e){
-    var rc=e.result==='W'?'result-w':e.result==='L'?'result-l':'result-p';
-    var plStr=(e.pl>=0?'+$':'-$')+Math.abs(e.pl).toFixed(2);
-    var plColor=e.pl>0?'#3b6d11':e.pl<0?'#a32d2d':'#888';
-    return '<tr>'
+    var isPending=e.result==='Pending';
+    var rc=isPending?'result-p':e.result==='W'?'result-w':e.result==='L'?'result-l':'result-p';
+    var plStr=isPending?'—':(e.pl>=0?'+$':'-$')+Math.abs(e.pl).toFixed(2);
+    var plColor=isPending?'#888':e.pl>0?'#3b6d11':e.pl<0?'#a32d2d':'#888';
+    var gradeBtn=isPending
+      ?'<div style="display:flex;gap:4px;">'
+        +'<button onclick="gradeEntry('+e.id+',\'W\')" style="padding:2px 8px;font-size:11px;border-radius:5px;border:1px solid #3b6d11;background:#eaf3de;color:#3b6d11;cursor:pointer;">W</button>'
+        +'<button onclick="gradeEntry('+e.id+',\'L\')" style="padding:2px 8px;font-size:11px;border-radius:5px;border:1px solid #a32d2d;background:#fcebeb;color:#a32d2d;cursor:pointer;">L</button>'
+        +'<button onclick="gradeEntry('+e.id+',\'P\')" style="padding:2px 8px;font-size:11px;border-radius:5px;border:1px solid #ccc;background:#f5f5f2;color:#888;cursor:pointer;">P</button>'
+        +'</div>'
+      :'<button onclick="deleteEntry('+e.id+')" style="background:none;border:none;cursor:pointer;color:#bbb;font-size:14px;">×</button>';
+    return '<tr'+(isPending?' style="background:#fffbf0;"':'')+'>'
       +'<td>'+e.date+'</td>'
       +'<td>'+e.desc+'</td>'
       +'<td><span class="play-type-badge play-type-'+e.type.toLowerCase().replace(' ','')+'">'+e.type+'</span></td>'
       +'<td>$'+e.amt.toFixed(2)+'</td>'
       +'<td>'+e.odds+'</td>'
       +'<td>$'+e.win.toFixed(2)+'</td>'
-      +'<td class="'+rc+'">'+e.result+'</td>'
+      +'<td class="'+rc+'">'+(isPending?'⏳ Pending':e.result)+'</td>'
       +'<td style="font-weight:700;color:'+plColor+';">'+plStr+'</td>'
-      +'<td><button onclick="deleteEntry('+e.id+')" style="background:none;border:none;cursor:pointer;color:#bbb;font-size:14px;">×</button></td>'
+      +'<td>'+gradeBtn+'</td>'
       +'</tr>';
   }).join('');
   renderTrackerSummary();
@@ -886,17 +922,19 @@ function renderTracker(){
 
 function renderTrackerSummary(){
   var ts=g('trackerSummary');if(!ts) return;
-  var wins=trackerEntries.filter(function(e){return e.result==='W';}).length;
-  var losses=trackerEntries.filter(function(e){return e.result==='L';}).length;
-  var totalPL=trackerEntries.reduce(function(s,e){return s+e.pl;},0);
-  var totalRisked=trackerEntries.filter(function(e){return e.result!=='P';}).reduce(function(s,e){return s+e.amt;},0);
+  var graded=trackerEntries.filter(function(e){return e.result!=='Pending';});
+  var pending=trackerEntries.filter(function(e){return e.result==='Pending';});
+  var wins=graded.filter(function(e){return e.result==='W';}).length;
+  var losses=graded.filter(function(e){return e.result==='L';}).length;
+  var totalPL=graded.reduce(function(s,e){return s+e.pl;},0);
+  var totalRisked=graded.filter(function(e){return e.result!=='P';}).reduce(function(s,e){return s+e.amt;},0);
   var roi=totalRisked>0?(totalPL/totalRisked*100):0;
   var winRate=wins+losses>0?(wins/(wins+losses)*100):0;
+  var pendingRisked=pending.reduce(function(s,e){return s+e.amt;},0);
 
-  // By type
   var types=['Fade','K Prop','Game Total'];
   var byType=types.map(function(t){
-    var entries=trackerEntries.filter(function(e){return e.type===t;});
+    var entries=graded.filter(function(e){return e.type===t;});
     var tpl=entries.reduce(function(s,e){return s+e.pl;},0);
     var tw=entries.filter(function(e){return e.result==='W';}).length;
     var tl=entries.filter(function(e){return e.result==='L';}).length;
@@ -909,6 +947,7 @@ function renderTrackerSummary(){
     +'<div class="tcard"><div class="tcard-label">ROI</div><div class="tcard-val" style="color:'+(roi>=0?'#3b6d11':'#a32d2d')+';">'+(roi>=0?'+':'')+roi.toFixed(1)+'%</div></div>'
     +'<div class="tcard"><div class="tcard-label">Win Rate</div><div class="tcard-val">'+winRate.toFixed(0)+'%</div></div>'
     +'<div class="tcard"><div class="tcard-label">Record</div><div class="tcard-val">'+wins+'-'+losses+'</div></div>'
+    +(pending.length?'<div class="tcard"><div class="tcard-label">Pending</div><div class="tcard-val" style="color:#856404;">'+pending.length+' ($'+pendingRisked.toFixed(0)+')</div></div>':'')
     +(byType.length?'<div class="tcard" style="grid-column:span 2"><div class="tcard-label">By type</div><div style="font-size:13px;margin-top:4px;">'+byType.map(function(t){var c=t.pl>=0?'#3b6d11':'#a32d2d';return '<span style="margin-right:12px;"><strong>'+t.type+'</strong>: '+t.w+'-'+t.l+' <span style="color:'+c+';">'+(t.pl>=0?'+$':'-$')+Math.abs(t.pl).toFixed(2)+'</span></span>';}).join('')+'</div></div>':'');
 }
 
